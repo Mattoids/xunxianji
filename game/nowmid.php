@@ -48,6 +48,7 @@ $gonowmid = $encode->encode("cmd=gomid&newmid=$clmid->mid&sid=$sid");
 $phcmd = $encode->encode("cmd=paihang&sid=$sid");
 $getbagcmd = $encode->encode("cmd=getbagzb&sid=$sid");
 $cwcmd = $encode->encode("cmd=chongwu&sid=$sid");
+$setting = $encode->encode("cmd=setting&sid=$sid");
 $cxall = '';
 
 $upmidlj = $encode->encode("cmd=gomid&newmid=$clmid->upmid&sid=$sid");//上地图
@@ -323,8 +324,8 @@ $clmid->midinfo<br/>
 <br/>
 <a href="?cmd=$phcmd" >排行</a>.<a href="?cmd=$xiuliancmd" >修炼</a>.<a href="?cmd=$fangshi" >坊市</a>.<a href="?cmd=$clubcmd" >门派</a>
 <br/>
-<a href="?cmd=$imcmd" >好友</a>.<a href="?cmd=$duihuancmd" >兑换码</a>
-.<a href="?cmd=$cwcmd" >宠物</a>
+<a href="?cmd=$imcmd" >好友</a>.<a href="?cmd=$duihuancmd" >兑换</a>
+.<a href="?cmd=$cwcmd" >宠物</a>.<a href="?cmd=$setting" >设置</a>
 <br/>
 <a href="?cmd=$gonowmid">返回游戏</a><br/>
 HTML;

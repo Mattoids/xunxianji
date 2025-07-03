@@ -275,6 +275,9 @@ if (isset($cmd)){
         case "im":
             $ym = "game/im.php";
             break;
+        case "setting":
+            $ym = "game/setting.php";
+            break;
     }
     if (!isset($sid) || $sid=='' ){
 
