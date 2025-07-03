@@ -380,6 +380,12 @@ if (isset($zdjg)){
                 }
             }
 
+            // 战斗结束使用血池
+            if ($player->autoxc) {
+                $xuechi = \player\getplayeryaopinxc($sid, $dblj);
+                \player\useyaopin($xuechi->ypid,1,$sid,$dblj);
+            }
+
             $html = <<<HTML
             战斗结果:<br/>
             你打死了$guaiwu->gname<br/>

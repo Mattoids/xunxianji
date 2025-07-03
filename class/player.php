@@ -42,6 +42,7 @@ class player
     var $cengci;
     var $autozd;
     var $autoxg;
+    var $autoxc;
 }
 function getplayer($sid,$dblj){
     $player = new player();
@@ -84,6 +85,7 @@ function getplayer($sid,$dblj){
     $cxjg->bindColumn('ispvp',$player->ispvp);
     $cxjg->bindColumn('autozd',$player->autozd);
     $cxjg->bindColumn('autoxg',$player->autoxg);
+    $cxjg->bindColumn('autoxc',$player->autoxc);
     $cxjg->fetch(\PDO::FETCH_ASSOC);
     if ($player->tool1!=0){
         $zhuangbei = getzb($player->tool1,$dblj);
@@ -582,6 +584,7 @@ class yaopin{
     var $ypbj;
     var $ypxx;
     var $ypsum;
+    var $isyg;
 }
 function getyaopin($dblj){
     $sql = "select * from yaopin";
@@ -608,6 +611,7 @@ function getyaopinonce($ypid,$dblj){
     $cxjg->bindColumn('ypjg',$yaopin->ypjg);
     $cxjg->bindColumn('ypbj',$yaopin->ypbj);
     $cxjg->bindColumn('ypid',$yaopin->ypid);
+    $cxjg->bindColumn('isyg',$yaopin->isyg);
     $cxjg->fetch(\PDO::FETCH_ASSOC);
     return $yaopin;
 }
@@ -624,6 +628,29 @@ function getplayeryaopin($ypid,$sid,$dblj){
     $cxjg->bindColumn('ypbj',$yaopin->ypbj);
     $cxjg->bindColumn('ypxx',$yaopin->ypxx);
     $cxjg->bindColumn('ypsum',$yaopin->ypsum);
+    $cxjg->bindColumn('isyg',$yaopin->isyg);
+    $ret = $cxjg->fetch(\PDO::FETCH_ASSOC);
+    if ($ret){
+        return $yaopin;
+    }else{
+        return false;
+    }
+}
+
+function getplayeryaopinxc($sid,$dblj){
+    $yaopin = new yaopin();
+    $sql = "select * from playeryaopin WHERE sid='$sid' AND isyg = 1 order by yphp asc limit 1";
+    $cxjg = $dblj->query($sql);
+    $cxjg->bindColumn('ypid',$yaopin->ypid);
+    $cxjg->bindColumn('ypname',$yaopin->ypname);
+    $cxjg->bindColumn('yphp',$yaopin->yphp);
+    $cxjg->bindColumn('ypgj',$yaopin->ypgj);
+    $cxjg->bindColumn('ypfy',$yaopin->ypfy);
+    $cxjg->bindColumn('ypjg',$yaopin->ypjg);
+    $cxjg->bindColumn('ypbj',$yaopin->ypbj);
+    $cxjg->bindColumn('ypxx',$yaopin->ypxx);
+    $cxjg->bindColumn('ypsum',$yaopin->ypsum);
+    $cxjg->bindColumn('isyg',$yaopin->isyg);
     $ret = $cxjg->fetch(\PDO::FETCH_ASSOC);
     if ($ret){
         return $yaopin;
@@ -651,24 +678,47 @@ function addyaopin($sid,$ypid,$ypsum,$dblj){
         $dblj->exec($sql);
     }else{
         $yaopin = getyaopinonce($ypid,$dblj);
-        $sql = "insert into playeryaopin(ypname,yphp,ypgj,ypfy,ypbj,ypxx,ypid,ypjg,ypsum,sid) VALUES('$yaopin->ypname','$yaopin->yphp','$yaopin->ypgj','$yaopin->ypfy','$yaopin->ypbj','$yaopin->ypxx',$ypid,'$yaopin->ypjg','$ypsum','$sid')";
+        $sql = "insert into playeryaopin(ypname,yphp,ypgj,ypfy,ypbj,ypxx,ypid,ypjg,ypsum,sid, isyg) VALUES('$yaopin->ypname','$yaopin->yphp','$yaopin->ypgj','$yaopin->ypfy','$yaopin->ypbj','$yaopin->ypxx',$ypid,'$yaopin->ypjg','$ypsum','$sid', '$yaopin->isyg')";
         $ret = $dblj->exec($sql);
     }
 }
 
 function deleyaopin($sid,$ypid,$ypsum,$dblj){
     $yaopin = getplayeryaopin($ypid,$sid,$dblj);
+
     if ($yaopin){
-        if ($yaopin->ypsum>=$ypsum){
-            $sql = "update playeryaopin set ypsum = ypsum - $ypsum WHERE ypid=$ypid AND sid='$sid'";
-            $dblj->exec($sql);
-            return true;
-        }else{
-            return false;
+        if ($yaopin->isyg == 0 || $yaopin->yphp <= 0) {
+            if ($yaopin->ypsum>=$ypsum){
+                $sql = "update playeryaopin set ypsum = ypsum - $ypsum WHERE ypid=$ypid AND sid='$sid'";
+                $dblj->exec($sql);
+                return true;
+            }else{
+                return false;
+            }
         }
+        return true;
     }else{
         return false;
     }
+}
+
+function deleyaopinhp($sid,$ypid,$hpc,$dblj){
+    $inityappin = getyaopinonce($ypid,$dblj);
+    $yaopin = getplayeryaopin($ypid,$sid,$dblj);
+    if ($yaopin){
+        if ($yaopin->yphp > $hpc) {
+            $sql = "update playeryaopin set yphp = yphp - $hpc WHERE ypid=$ypid AND sid='$sid'";
+            $dblj->exec($sql);
+        } else if($yaopin->ypsum > 1) {
+            $sql = "update playeryaopin set yphp = $inityappin->yphp - $hpc - $yaopin->yphp, ypsum = ypsum - 1 WHERE ypid=$ypid AND sid='$sid'";
+            $dblj->exec($sql);
+        } else {
+            $sql = "update playeryaopin set yphp = $inityappin->yphp, ypsum = ypsum - 1 WHERE ypid=$ypid AND sid='$sid'";
+            $dblj->exec($sql);
+        }
+        return true;
+    }
+    return false;
 }
 
 function changeplayersx($sx,$gaibian,$sid,$dblj){
@@ -844,11 +894,15 @@ function useyaopin($ypid,$ypsum,$sid,$dblj){
     if ($player->uhp<=0){
         return false;
     }
+    $yaopin = getplayeryaopin($ypid,$sid,$dblj);
+    if ($yaopin->ypsum <= 0) {
+        return false;
+    }
     $ret = deleyaopin($sid,$ypid,$ypsum,$dblj);
     if ($ret){
 
         $hpc = $player->umaxhp - $player->uhp;
-        $yaopin = getyaopinonce($ypid,$dblj);
+        deleyaopinhp($sid,$ypid,$hpc,$dblj);
         if ($yaopin->yphp >= $hpc){
             addplayersx('uhp',$hpc,$sid,$dblj);
         }else{
@@ -1373,6 +1427,11 @@ function addautozd($sid, $autozd, $dblj) {
 
 function addautoxg($sid, $autoxg, $dblj) {
     $sql = "update game1 set autoxg = $autoxg WHERE sid='$sid'";
+    $ret = $dblj->exec($sql);
+}
+
+function addautoxc($sid, $autoxc, $dblj) {
+    $sql = "update game1 set autoxc = $autoxc WHERE sid='$sid'";
     $ret = $dblj->exec($sql);
 }
 
