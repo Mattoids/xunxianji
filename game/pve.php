@@ -287,6 +287,9 @@ if (isset($zdjg)){
             player\changeexp($sid,$dblj,$guaiwu->gexp);
             $huode.='获得修为:'.$guaiwu->gexp.'<br/>';
 
+            player\changecwexp($player->cw, $guaiwu->gexp, $dblj);
+            $huode.='宠物修为:'.$guaiwu->gexp.'<br/>';
+
             $html = <<<HTML
             战斗结果:<br/>
             你打死了$guaiwu->gname<br/>
