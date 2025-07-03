@@ -23,6 +23,9 @@ $usejn1 = $encode->encode("cmd=pvegj&canshu=usejn&jnid=$player->jn1&sid=$sid&gid
 $usejn2 = $encode->encode("cmd=pvegj&canshu=usejn&jnid=$player->jn2&sid=$sid&gid=$gid&nowmid=$nowmid");
 $usejn3 = $encode->encode("cmd=pvegj&canshu=usejn&jnid=$player->jn3&sid=$sid&gid=$gid&nowmid=$nowmid");
 
+$enable = $encode->encode("cmd=pvegj&gid=$gid&sid=$player->sid&nowmid=$nowmid&autozd=1");
+$disable = $encode->encode("cmd=pve&gid=$gid&sid=$player->sid&nowmid=$nowmid&autozd=0");
+
 $ypname1 = '药品1';
 $ypname2 = '药品2';
 $ypname3 = '药品3';
@@ -43,11 +46,42 @@ HTML;
     exit();
 }
 
+// 自动刷新怪物
+$clmid = player\getmid($player->nowmid,$dblj);
+\player\shuaxinguaiwu($player->nowmid, $clmid, $dblj);
+
 if (($guaiwu->sid!=$player->sid && $guaiwu->sid!='') || ($guaiwu->gid=='')){
-        $html = <<<HTML
+    $pagexg = '';
+    if ($player->autoxg == 1) {
+        $delgid = $gid;
+        $sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = '' AND ghp > 0";//获取当前地图怪物
+        $cxjg = $dblj->query($sql);
+        $cxallguaiwu = $cxjg->fetchAll(PDO::FETCH_ASSOC);
+        $gid = $cxallguaiwu[0]['id'];
+
+        if ($gid) {
+            $pgjcmd = $encode->encode("cmd=pve&gid=$gid&delgid=$delgid&sid=$player->sid&nowmid=$nowmid");
+            $pagexg = "<div id='autoxg'>正在寻怪.(5)</div> <br/>
+                            <script> 
+                                let num = 5; 
+                                setInterval(() => {
+                                    num --; 
+                                    let autoxg = document.getElementById('autoxg'); 
+                                    autoxg.innerHTML='正在寻怪.('+num+')';
+                                    }, 1000)  
+                                    
+                                setInterval(() => { 
+                                    window.location.href = '?cmd={$pgjcmd}' 
+                                    }, 5000) 
+                            </script>";
+        }
+    }
+
+    $html = <<<HTML
         怪物已经被其他人攻击了！<br/>
         请少侠练习一下手速哦
         <br/>
+        $pagexg
         <a href="?cmd=$gonowmid">返回游戏</a>
 HTML;
         exit($html);
@@ -64,7 +98,6 @@ if (isset($canshu)){
 }
 
 if($cmd=='pve' && $guaiwu->sid==''){
-
     if ($player->ulv >= 10 && $player->uhp <=0){
         $zdjg = -1;
     }else{
@@ -272,6 +305,9 @@ if($cmd=='pve' && $guaiwu->sid==''){
     if ($player->uhp <= 0){
         $zdjg = 0;
     }
+} if ($cmd = 'pve' &&  isset($autozd) && $autozd != $player->autozd) {
+    \player\addautozd($sid, $autozd, $dblj);
+    $player = \player\getplayer($sid,$dblj);
 }
 
 if ($player->yp1!=0){
@@ -318,12 +354,39 @@ if (isset($zdjg)){
                 $huode.='宠物修为:'.$guaiwu->cwgexp.'<br/>';
             }
 
+            $pagexg = '';
+            if ($player->autoxg == 1) {
+                $delgid = $gid;
+                $sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = '' AND ghp > 0";//获取当前地图怪物
+                $cxjg = $dblj->query($sql);
+                $cxallguaiwu = $cxjg->fetchAll(PDO::FETCH_ASSOC);
+                $gid = $cxallguaiwu[0]['id'];
+
+                if ($gid) {
+                    $pgjcmd = $encode->encode("cmd=pve&gid=$gid&$delgid=$delgid&sid=$player->sid&nowmid=$nowmid");
+                    $pagexg = "<div id='autoxg'>正在寻怪.(5)</div> <br/>
+                            <script> 
+                                let num = 5; 
+                                setInterval(() => {
+                                    num --; 
+                                    let autoxg = document.getElementById('autoxg'); 
+                                    autoxg.innerHTML='正在寻怪.('+num+')';
+                                    }, 1000)  
+                                    
+                                setInterval(() => { 
+                                    window.location.href = '?cmd={$pgjcmd}' 
+                                    }, 5000) 
+                            </script>";
+                }
+            }
+
             $html = <<<HTML
             战斗结果:<br/>
             你打死了$guaiwu->gname<br/>
             战斗胜利！<br/>
             $huode
             $rwts<br/>
+            $pagexg
             <a href="?cmd=$gonowmid">返回游戏</a>
 HTML;
             break;
@@ -383,7 +446,12 @@ HTML;
         }
 
     }
-    
+
+    if ($player->autozd == 1) {
+        $page = "开 / <a href='?cmd={$disable}'>关</a> <script> setInterval(() => { window.location.href = '?cmd={$pgjcmd}'; }, 3000) </script>";
+    } else {
+        $page = "<a href='?cmd={$enable}'>开</a> / 关";
+    }
 $html = <<<HTML
 ==战斗==<br/>
 $guaiwu->gname [lv:$guaiwu->glv]<br/>
@@ -403,6 +471,9 @@ $cwhtml
 </ul>
 <a href="?cmd=$usejn1">$jnname1</a>.<a href="?cmd=$usejn2">$jnname2</a>.<a href="?cmd=$usejn3">$jnname3</a><br/>
 <a href="?cmd=$useyp1">$ypname1</a>.<a href="?cmd=$useyp2">$ypname2</a>.<a href="?cmd=$useyp3">$ypname3</a><br/>
+<br/>
+<div>-------------------</div>
+自动攻击：{$page}<br/>
 <br/>
 HTML;
 }

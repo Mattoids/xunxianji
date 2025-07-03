@@ -98,40 +98,41 @@ if ($downmid->mname!=''){
 HTML;
 }
 
-$sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = ''";//获取当前地图怪物
-$cxjg = $dblj->query($sql);
-$cxallguaiwu = $cxjg->rowCount();
-$nowdate = date('Y-m-d H:i:s');
-$second=floor((strtotime($nowdate)-strtotime($clmid->mgtime))%86400);//获取刷新间隔
-if ($second > $clmid->ms  && $cxallguaiwu== 0 && $clmid->mgid!=''){//刷新怪物
-
-    $sql = "update mid set mgtime='$nowdate' WHERE mid='$player->nowmid'";
-    $dblj->exec($sql);
-    $retgw = explode(",",$clmid->mgid);
-    foreach ($retgw as $itemgw){
-        $gwinfo = explode("|",$itemgw);
-        $guaiwu = \player\getyguaiwu($gwinfo[0],$dblj);
-        $guaiwu->gyid = $gwinfo[0];
-        $sjexp = mt_rand(6,8) + 0.5;
-        $guaiwu->gexp = round($guaiwu->glv * $sjexp,0);
-        for ($n=0;$n<$gwinfo[1];$n++){
-            $sql = "insert into midguaiwu(mid,gname,glv,ghp,ggj,gfy,gbj,gxx,gexp,gyid,gmaxhp) 
-                    values('$player->nowmid',
-                    '$guaiwu->gname',
-                    '$guaiwu->glv',
-                    '$guaiwu->ghp',
-                    '$guaiwu->ggj',
-                    '$guaiwu->gfy',
-                    '$guaiwu->gbj',
-                    '$guaiwu->gxx',
-                    '$guaiwu->gexp',
-                    '$guaiwu->gyid',
-                    '$guaiwu->ghp')";
-            $cxjg = $dblj->exec($sql);
-        }
-
-    }
-}
+//$sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = ''";//获取当前地图怪物
+//$cxjg = $dblj->query($sql);
+//$cxallguaiwu = $cxjg->rowCount();
+//$nowdate = date('Y-m-d H:i:s');
+//$second=floor((strtotime($nowdate)-strtotime($clmid->mgtime))%86400);//获取刷新间隔
+//if ($second > $clmid->ms  && $cxallguaiwu== 0 && $clmid->mgid!=''){//刷新怪物
+//
+//    $sql = "update mid set mgtime='$nowdate' WHERE mid='$player->nowmid'";
+//    $dblj->exec($sql);
+//    $retgw = explode(",",$clmid->mgid);
+//    foreach ($retgw as $itemgw){
+//        $gwinfo = explode("|",$itemgw);
+//        $guaiwu = \player\getyguaiwu($gwinfo[0],$dblj);
+//        $guaiwu->gyid = $gwinfo[0];
+//        $sjexp = mt_rand(6,8) + 0.5;
+//        $guaiwu->gexp = round($guaiwu->glv * $sjexp,0);
+//        for ($n=0;$n<$gwinfo[1];$n++){
+//            $sql = "insert into midguaiwu(mid,gname,glv,ghp,ggj,gfy,gbj,gxx,gexp,gyid,gmaxhp)
+//                    values('$player->nowmid',
+//                    '$guaiwu->gname',
+//                    '$guaiwu->glv',
+//                    '$guaiwu->ghp',
+//                    '$guaiwu->ggj',
+//                    '$guaiwu->gfy',
+//                    '$guaiwu->gbj',
+//                    '$guaiwu->gxx',
+//                    '$guaiwu->gexp',
+//                    '$guaiwu->gyid',
+//                    '$guaiwu->ghp')";
+//            $cxjg = $dblj->exec($sql);
+//        }
+//
+//    }
+//}
+\player\shuaxinguaiwu($player->nowmid, $clmid, $dblj);
 $sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = ''";//获取当前地图怪物
 $cxjg = $dblj->query($sql);
 $cxallguaiwu = $cxjg->fetchAll(PDO::FETCH_ASSOC);
@@ -324,8 +325,7 @@ $clmid->midinfo<br/>
 <br/>
 <a href="?cmd=$phcmd" >排行</a>.<a href="?cmd=$xiuliancmd" >修炼</a>.<a href="?cmd=$fangshi" >坊市</a>.<a href="?cmd=$clubcmd" >门派</a>
 <br/>
-<a href="?cmd=$imcmd" >好友</a>.<a href="?cmd=$duihuancmd" >兑换</a>
-.<a href="?cmd=$cwcmd" >宠物</a>.<a href="?cmd=$setting" >设置</a>
+<a href="?cmd=$imcmd" >好友</a>.<a href="?cmd=$duihuancmd" >兑换</a>.<a href="?cmd=$cwcmd" >宠物</a>.<a href="?cmd=$setting" >设置</a>
 <br/>
 <a href="?cmd=$gonowmid">返回游戏</a><br/>
 HTML;

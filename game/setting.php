@@ -1,21 +1,38 @@
 <?php
+$player =  \player\getplayer($sid,$dblj);
 $gonowmid = $encode->encode("cmd=gomid&newmid=$player->nowmid&sid=$sid");
 $imlist = '';
 
-$sql="select * from setting WHERE sid='$sid'";
-$ret = $dblj->query($sql);
-$setting = $ret->fetchAll(PDO::FETCH_ASSOC);
-var_dump($setting);
-if ($setting || $setting->auto_zd == 1) {
-    $page = "开/<button onClick=''>关</button>";
+parse_str($Dcmd, $Scmd);
+if (isset($Scmd['autozd']) && $Scmd['autozd'] != $player->autozd) {
+    \player\addautozd($sid,$Scmd['autozd'],$dblj);
+    $player =  \player\getplayer($sid,$dblj);
+}
+if (isset($Scmd['autoxg']) && $Scmd['autoxg'] != $player->autoxg) {
+    \player\addautoxg($sid,$Scmd['autoxg'],$dblj);
+    $player =  \player\getplayer($sid,$dblj);
+}
+
+$enable = $encode->encode("cmd=setting&autozd=1&sid=$sid");
+$disable = $encode->encode("cmd=setting&autozd=0&sid=$sid");
+if ($player->autozd == 1) {
+    $pagezd = "开 / <a href='?cmd={$disable}'>关</a>";
 } else {
-    $page = "<button onClick=''>开</button>/关";
+    $pagezd = "<a href='?cmd={$enable}'>开</a> / 关";
+}
+$enable = $encode->encode("cmd=setting&autoxg=1&sid=$sid");
+$disable = $encode->encode("cmd=setting&autoxg=0&sid=$sid");
+if ($player->autoxg == 1) {
+    $pagexg = "开 / <a href='?cmd={$disable}'>关</a>";
+} else {
+    $pagexg = "<a href='?cmd={$enable}'>开</a> / 关";
 }
 
 $imhtml =<<<HTML
 =======设置=======<br/>
 <br/>
-自动攻击状态：{$page}<br/>
+自动攻击：{$pagezd}<br/>
+自动寻怪：{$pagexg}<br/>
 <br/>
 <button onClick="javascript:history.back(-1);">返回上一页</button><br/>
 <a href="?cmd=$gonowmid">返回游戏</a>
