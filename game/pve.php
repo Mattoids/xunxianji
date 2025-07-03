@@ -110,8 +110,8 @@ if($cmd=='pve' && $guaiwu->sid==''){
     }
     $cw = \player\getchongwu($player->cw,$dblj);
     $cwvc = $cw->cwlv - $guaiwu->glv;
-    if ($lvc <= 0){
-        $lvc = 0;
+    if ($cwvc <= 0){
+        $cwvc = 0;
     }
 
     $phurt = 0 ;
