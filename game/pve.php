@@ -108,6 +108,11 @@ if($cmd=='pve' && $guaiwu->sid==''){
     if ($lvc <= 0){
         $lvc = 0;
     }
+    $cw = \player\getchongwu($player->cw,$dblj);
+    $cwvc = $cw->cwlv - $guaiwu->glv;
+    if ($lvc <= 0){
+        $lvc = 0;
+    }
 
     $phurt = 0 ;
 
@@ -126,6 +131,16 @@ if($cmd=='pve' && $guaiwu->sid==''){
     if ($gphurt < $player->ugj*0.15){
         $gphurt = round( $player->ugj * 0.15);
     }
+
+    if ($player->cw!=0) {
+        $cw = \player\getchongwu($player->cw,$dblj);
+        $cwghurt = round($cw->cwgj - ($guaiwu->gfy * 0.75),0);
+        if ($cwghurt < $player->ugj*0.15){
+            $cwghurt = round( $player->ugj * 0.15);
+        }
+        $gphurt += $cwghurt;
+    }
+
     $pvexx = ceil($gphurt * ($player->uxx/100) );
 
     if ($phurt <= 0){
@@ -232,6 +247,10 @@ if($cmd=='pve' && $guaiwu->sid==''){
         if($guaiwu->gexp < 3){
             $guaiwu->gexp = 3;
         }
+        $guaiwu->cwgexp = round($guaiwu->gexp / ($cwvc+1),0);//经验计算
+        if($guaiwu->cwgexp < 3){
+            $guaiwu->cwgexp = 3;
+        }
         $zdjg = 1;
     }
     $pzssh = $phurt - $pvexx;
@@ -287,8 +306,8 @@ if (isset($zdjg)){
             player\changeexp($sid,$dblj,$guaiwu->gexp);
             $huode.='获得修为:'.$guaiwu->gexp.'<br/>';
 
-            if ($player->cw) {
-                player\changecwexp($player->cw, $guaiwu->gexp, $dblj);
+            if ($player->cw!=0) {
+                player\changecwexp($player->cw, $guaiwu->cwgexp, $dblj);
                 $huode.='宠物修为:'.$guaiwu->gexp.'<br/>';
             }
 

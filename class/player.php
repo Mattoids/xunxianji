@@ -174,6 +174,7 @@ class guaiwu
     var $sid;
     var $glv;
     var $gexp;//经验
+    var $cwgexp;//经验
     var $ghp;//生命
     var $gmaxhp;
     var $ggj;//攻击
