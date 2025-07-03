@@ -129,6 +129,10 @@ function getplayer($sid,$dblj){
         $player->uxx = $player->uxx + $zhuangbei->zbxx;
         $player->umaxhp = $player->umaxhp + $zhuangbei->zbhp;
     }
+    if ($player->cw!=0) {
+        $cw = getchongwu($player->cw,$dblj);
+        $player->uxx = $player->uxx + $cw->cwxx;
+    }
     $rangeslv = array(0, 30, 50, 70, 80, 90, 100, 110);
     $rangesexp = array(2.5, 5, 7.5, 10, 12.5, 15, 17.5);
     $playernextlv = $player->ulv + 1;

@@ -134,6 +134,13 @@ if($cmd=='pve' && $guaiwu->sid==''){
 
     if ($player->cw!=0) {
         $cw = \player\getchongwu($player->cw,$dblj);
+
+        $ran = mt_rand(1,100);
+        if ($cw->cwbj >= $ran){
+            $cw->cwgj = round($cw->cwgj * 1.72);
+            $pvebj = '暴击';
+        }
+
         $cwghurt = round($cw->cwgj - ($guaiwu->gfy * 0.75),0);
         if ($cwghurt < $player->ugj*0.15){
             $cwghurt = round( $player->ugj * 0.15);
