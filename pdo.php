@@ -1,8 +1,8 @@
 
 <?php
 $sqlname='root';
-$sqlpass='root';
-$dbhost='127.0.0.1';
+$sqlpass='mysql_HhXYaG';
+$dbhost='192.168.2.123:3305';
 $dbname='xunxian';
 $dsn="mysql:host=$dbhost;dbname=$dbname;";
 $dblj = new PDO($dsn,$sqlname,$sqlpass,array(PDO::ATTR_PERSISTENT=>true));
