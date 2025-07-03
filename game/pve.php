@@ -308,7 +308,7 @@ if (isset($zdjg)){
 
             if ($player->cw!=0) {
                 player\changecwexp($player->cw, $guaiwu->cwgexp, $dblj);
-                $huode.='宠物修为:'.$guaiwu->gexp.'<br/>';
+                $huode.='宠物修为:'.$guaiwu->cwgexp.'<br/>';
             }
 
             $html = <<<HTML
