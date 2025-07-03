@@ -307,8 +307,8 @@ if (isset($zdjg)){
             $huode.='获得修为:'.$guaiwu->gexp.'<br/>';
 
             if ($player->cw!=0) {
-                player\changecwexp($player->cw, $guaiwu->cwgexp, $dblj);
-                $huode.='宠物修为:'.$guaiwu->cwgexp.'<br/>';
+                player\changecwexp($player->cw, $guaiwu->gexp, $dblj);
+                $huode.='宠物修为:'.$guaiwu->gexp.'<br/>';
             }
 
             $html = <<<HTML
