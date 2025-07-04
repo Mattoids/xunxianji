@@ -6,6 +6,7 @@ $clubhtml= '';
 $clubmenu = '';
 $renzhihtml='';
 $playerlist='';
+$gongneng='';
 if (isset($canshu)){
     switch ($canshu){
         case "joinclub":
@@ -13,24 +14,47 @@ if (isset($canshu)){
                 echo "你已经有门派了<br/>";
                 break;
             }
-            $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES ($clubid,$player->uid,'$sid',6)";
-            $row = $dblj->exec($sql);
-            $clubplayer = \player\getclubplayer_once($sid,$dblj);
-            echo "恭喜你成功加入<br/>";
+            $club = \player\getclub($clubid,$dblj);
+            if ($club->clubautosh == 1){
+                $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES ($clubid,$player->uid,'$sid',6)";
+                $row = $dblj->exec($sql);
+                $clubplayer = \player\getclubplayer_once($sid,$dblj);
+                echo "恭喜你成功加入<br/>";
+            } else {
+                $clubplayerapply = \player\getclubplayerapply($clubid, $player->uid, $dblj);
+                if (!$clubplayerapply) {
+                    $sql = "insert into clubplayerapply(clubid, uid, sid) VALUES ($clubid,$player->uid,'$sid')";
+                    $row = $dblj->exec($sql);
+                    $clubplayer = \player\getclubplayer_once($sid,$dblj);
+                    echo "恭喜你申请成功，请等待审核通过。<br/>";
+                } else {
+                    echo "已经申请过了，请不要重复申请。";
+                }
+            }
             break;
         case "outclub":
-            if ($clubplayer){
+            $clubcmd = $encode->encode("cmd=club&sid=$sid");
+            $outclubcmd = $encode->encode("cmd=club&canshu=outclub&sid=$sid&confirm=1");
+            $gongneng = "确认要叛出门派吗？<br/>";
+            $gongneng .= "<a href='?cmd=$outclubcmd'>确认</a> / <a href='?cmd=$clubcmd'>取消</a><br/>";
+            if (isset($confirm) && $confirm && $clubplayer){
                 $sql="delete from clubplayer WHERE sid='$sid'";
                 $row = $dblj->exec($sql);
                 $clubplayer = \player\getclubplayer_once($sid,$dblj);
             }
             break;
         case "deleteclub":
-            if ($clubplayer){
+            $clubcmd = $encode->encode("cmd=club&sid=$sid");
+            $outclubcmd = $encode->encode("cmd=club&canshu=deleteclub&sid=$sid&confirm=1");
+            $gongneng = "确认要解散门派吗？<br/>";
+            $gongneng .= "<a href='?cmd=$outclubcmd'>确认</a> / <a href='?cmd=$clubcmd'>取消</a><br/>";
+            if (isset($confirm) && $confirm && $clubplayer){
                 if ($clubplayer->uclv == 1){
                     $sql="delete from club WHERE clubid='$clubplayer->clubid'";
                     $row = $dblj->exec($sql);
                     $sql="delete from clubplayer WHERE clubid='$clubplayer->clubid'";
+                    $row = $dblj->exec($sql);
+                    $sql="delete from clubplayerapply WHERE clubid='$clubplayer->clubid'";
                     $row = $dblj->exec($sql);
                     echo "门派解散成功<br/>";
                 }
@@ -52,8 +76,8 @@ if (isset($canshu)){
                         $playerlist .= "<a href='?cmd=$ucmd'>{$otherplayer->uname}</a><br/>";
 
                     }
-                   $renzhihtml =  "=========选择任职人员=========<br/>$playerlist<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
-                    exit($renzhihtml);
+                    $gongneng =  "=========选择任职人员=========<br/>$playerlist<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+                    exit($gongneng);
                 }
 
                 if ($clubplayer->uclv == 1){
@@ -62,24 +86,74 @@ if (isset($canshu)){
                     $no4cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=4&sid=$sid");
                     $no5cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=5&sid=$sid");
                     $no6cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=6&sid=$sid");
-                    $renzhihtml = "<a href='?cmd=$no2cmd'>任职副掌门</a><br/><a href='?cmd=$no3cmd'>任职长老</a><br/><a href='?cmd=$no4cmd'>任职执事</a><br/><a href='?cmd=$no5cmd'>任职精英</a><br/><a href='?cmd=$no6cmd'>任职弟子</a><br/>";
+                    $gongneng = "<a href='?cmd=$no2cmd'>任职副掌门</a><br/><a href='?cmd=$no3cmd'>任职长老</a><br/><a href='?cmd=$no4cmd'>任职执事</a><br/><a href='?cmd=$no5cmd'>任职精英</a><br/><a href='?cmd=$no6cmd'>任职弟子</a><br/>";
                 }
                 if ($clubplayer->uclv == 2){
                     $no3cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=3&sid=$sid");
                     $no4cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=4&sid=$sid");
                     $no5cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=5&sid=$sid");
                     $no6cmd = $encode->encode("cmd=club&canshu=renzhi&zhiwei=6&sid=$sid");
-                    $renzhihtml = "<a href='?cmd=$no3cmd'>任职长老</a><br/><a href='?cmd=$no4cmd'>任职执事</a><br/><a href='?cmd=$no5cmd'>任职精英</a><br/><a href='?cmd=$no6cmd'>任职弟子</a><br/>";
+                    $gongneng = "<a href='?cmd=$no3cmd'>任职长老</a><br/><a href='?cmd=$no4cmd'>任职执事</a><br/><a href='?cmd=$no5cmd'>任职精英</a><br/><a href='?cmd=$no6cmd'>任职弟子</a><br/>";
                 }
             }
             break;
         case "zhiwei":
             $sql="update clubplayer set uclv = $zhiwei WHERE uid=$uid AND clubid = $clubplayer->clubid";
             $dblj->exec($sql);
+            break;
+        case "setting":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            if (isset($clubautosh) && $club->clubautosh != $clubautosh){
+                $sql="update club set clubautosh = $clubautosh WHERE clubid = $clubplayer->clubid";
+                $dblj->exec($sql);
 
+                $club = \player\getclub($clubplayer->clubid,$dblj);
+            }
+
+            $enable = $encode->encode("cmd=club&canshu=setting&sid=$sid&clubautosh=1");
+            $disable = $encode->encode("cmd=club&canshu=setting&sid=$sid&clubautosh=0");
+            if ($club->clubautosh == 0) {
+                $gongneng = "自动审核: <a href='?cmd=$enable'>开</a> / 关<br/><br/>";
+            } else {
+                $gongneng = "自动审核: 开 / <a href='?cmd=$disable'>关</a><br/><br/>";
+            }
+            break;
+        case "audit":
+            $gongneng = "=========申请人员=========<br/>";
+            $sql="select * from clubplayerapply WHERE clubid=$clubplayer->clubid";
+            $ret = $dblj->query($sql);
+            $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($retuid as $uiditem){
+                $enable = $encode->encode("cmd=club&canshu=auditres&sid=$sid&confirm=1&clubid=$uiditem[clubid]&uid=$uiditem[uid]");
+                $disable = $encode->encode("cmd=club&canshu=auditres&sid=$sid&confirm=0&clubid=$uiditem[clubid]&uid=$uiditem[uid]");
+                $ucmd = $encode->encode("cmd=getplayerinfo&uid=$uiditem[uid]&sid=$sid");
+
+                $applyplayer = \player\getplayer($uiditem['sid'], $dblj);
+                $gongneng .= "<a href='?cmd=$ucmd'>$applyplayer->uname</a> | <a href='?cmd=$enable'>通过</a> <a href='?cmd=$disable'>拒绝</a><br/>";
+            }
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "auditres":
+            if (isset($confirm) && isset($clubid) && isset($uid)){
+                $sql="delete from clubplayerapply WHERE clubid='$clubplayer->clubid' AND uid=$uid";
+                $row = $dblj->exec($sql);
+
+                if ($confirm == 1) {
+                    try {
+                        $clubplayerapply = \player\getclubplayerapply($clubid, $uid, $dblj);
+                        $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES ($clubid,$uid,'$clubplayerapply->sid',6)";
+                        $row = $dblj->exec($sql);
+                        $clubplayer = \player\getclubplayer_once($sid,$dblj);
+                        echo "审核成功<br/>";
+                    } catch (Exception $e) {
+                        echo "审核失败<br/>";
+                    }
+                }
+            }
+            break;
     }
 }
-
 if (isset($clubid) || $clubplayer){
     if ($clubplayer){
         if (isset($clubid)){
@@ -94,7 +168,13 @@ if (isset($clubid) || $clubplayer){
         if ($clubplayer->uclv==1){
             $outclubcmd = $encode->encode("cmd=club&canshu=deleteclub&sid=$sid");
             $renzhicmd = $encode->encode("cmd=club&canshu=renzhi&sid=$sid");
-            $clubmenu = "<a href='?cmd=$renzhicmd'>任职</a> <a href='?cmd=$outclubcmd'>解散</a>";
+            $setting = $encode->encode("cmd=club&canshu=setting&sid=$sid");
+            $apply = $encode->encode("cmd=club&canshu=audit&sid=$sid");
+
+            $clubmenu = "<a href='?cmd=$renzhicmd'>任职</a>";
+            $clubmenu .= "<a href='?cmd=$apply'>审核</a>";
+            $clubmenu .= "<a href='?cmd=$outclubcmd'>解散</a>";
+            $clubmenu .= "<a href='?cmd=$setting'>设置</a>";
         }
     }else{
         $joincmd = $encode->encode("cmd=club&clubid=$clubid&canshu=joinclub&sid=$sid");
@@ -142,11 +222,12 @@ if (isset($clubid) || $clubplayer){
 建设度:$club->clubexp<br/>
 门派介绍:<br/>$club->clubinfo<br/>
 $clubmenu
-<a href="?cmd=$clublist">门派列表</a><br/>
-$renzhihtml
+<br/><br/>
+$gongneng<br/>
 门派成员：<br/>
 $playerlist
 <br/>
+<a href="?cmd=$clublist">门派列表</a><br/><br/>
 <button onClick="javascript :history.back(-1);">返回上一页</button><br/> 
 <a href="?cmd=$gonowmid">返回游戏</a>
 HTML;

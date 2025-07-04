@@ -1318,6 +1318,7 @@ class club{
     var $clubinfo;
     var $clubyxb;
     var $clubczb;
+    var $clubautosh;
 }
 function getclub($clubid,$dblj){
     $club = new club();
@@ -1331,6 +1332,7 @@ function getclub($clubid,$dblj){
     $retc->bindColumn("clubno1",$club->clubno1);
     $retc->bindColumn("clubyxb",$club->clubyxb);
     $retc->bindColumn("clubczb",$club->clubczb);
+    $retc->bindColumn("clubautosh",$club->clubautosh);
     $retc->fetch(\PDO::FETCH_ASSOC);
     return $club;
 }
@@ -1471,4 +1473,24 @@ function shuaxinguaiwu($nowmid, $clmid, $dblj)
 
         }
     }
+}
+
+class clubplayerapply {
+    var $uid;
+    var $sid;
+    var $clubid;
+}
+function getclubplayerapply($clubid, $uid, $dblj)
+{
+    $clubplayerapply = new clubplayerapply();
+    $sql = "select * from clubplayerapply WHERE clubid = $clubid AND uid = $uid";
+    $ret = $dblj->query($sql);
+    $ret->bindColumn('uid',$clubplayerapply->uid);
+    $ret->bindColumn('sid',$clubplayerapply->sid);
+    $ret->bindColumn('clubid',$clubplayerapply->clubid);
+    $ret = $ret->fetch(\PDO::FETCH_ASSOC);
+    if ($ret){
+        return $clubplayerapply;
+    }
+    return $ret;
 }

@@ -3,17 +3,16 @@ $player =  \player\getplayer($sid,$dblj);
 $gonowmid = $encode->encode("cmd=gomid&newmid=$player->nowmid&sid=$sid");
 $imlist = '';
 
-parse_str($Dcmd, $Scmd);
-if (isset($Scmd['autozd']) && $Scmd['autozd'] != $player->autozd) {
-    \player\addautozd($sid,$Scmd['autozd'],$dblj);
+if (isset($autozd) && $autozd != $player->autozd) {
+    \player\addautozd($sid,$autozd,$dblj);
     $player =  \player\getplayer($sid,$dblj);
 }
-if (isset($Scmd['autoxg']) && $Scmd['autoxg'] != $player->autoxg) {
-    \player\addautoxg($sid,$Scmd['autoxg'],$dblj);
+if (isset($autoxg) && $autoxg != $player->autoxg) {
+    \player\addautoxg($sid,$autoxg,$dblj);
     $player =  \player\getplayer($sid,$dblj);
 }
-if (isset($Scmd['autoxc']) && $Scmd['autoxc'] != $player->autoxc) {
-    \player\addautoxc($sid,$Scmd['autoxc'],$dblj);
+if (isset($autoxc) && $autoxc != $player->autoxc) {
+    \player\addautoxc($sid,$autoxc,$dblj);
     $player =  \player\getplayer($sid,$dblj);
 }
 
