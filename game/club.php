@@ -174,6 +174,39 @@ if (isset($canshu)){
                 echo "修改成功!<br/>";
             }
             break;
+        case "tichu":
+            $gongneng = "=========人员=========<br/>";
+            $sql="select * from clubplayer WHERE clubid=$clubplayer->clubid AND uclv > $uclv";
+            $ret = $dblj->query($sql);
+            $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($retuid as $uiditem){
+                $tichures = $encode->encode("cmd=club&canshu=tichures&sid=$sid&confirm=1&tsid=$uiditem[sid]");
+                $ucmd = $encode->encode("cmd=getplayerinfo&uid=$uiditem[uid]&sid=$sid");
+
+                $applyplayer = \player\getplayer($uiditem['sid'], $dblj);
+                $gongneng .= "<a href='?cmd=$ucmd'>$applyplayer->uname</a> | <a href='?cmd=$tichures'>踢出</a><br/>";
+            }
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "tichures":
+            if (isset($tsid)) {
+                $clubcmd = $encode->encode("cmd=club&sid=$sid");
+                $outclubcmd = $encode->encode("cmd=club&canshu=tichures&sid=$sid&tichuqueren=1&tsid=$tsid");
+                $clubplayer = \player\getclubplayer_once($tsid,$dblj);
+                if (isset($tichuqueren) && $tichuqueren == 1 && $clubplayer) {
+                    $sql="delete from clubplayer WHERE clubid='$clubplayer->clubid' AND sid='$tsid'";
+                    $dblj->exec($sql);
+                    echo "操作成功！<br/>";
+                } else {
+                    $playertc = \player\getplayer($tsid, $dblj);
+                    $gongneng = "确认要踢出<a href='$clubcmd'>$playertc->uname</a>吗？<br/>";
+                    $gongneng .= "<a href='?cmd=$outclubcmd'>确认</a> / <a href='?cmd=$clubcmd'>取消</a><br/>";
+                    $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+                    exit($gongneng);
+                }
+            }
+            break;
     }
 }
 if (isset($clubid) || $clubplayer){
@@ -185,26 +218,38 @@ if (isset($clubid) || $clubplayer){
         }else{
             $clubid = $clubplayer->clubid;
         }
-        $outclubcmd = $encode->encode("cmd=club&canshu=outclub&sid=$sid");
-        $clubmenu = "<a href='?cmd=$outclubcmd'>判出</a>";
-        if ($clubplayer->uclv==1){
-            $outclubcmd = $encode->encode("cmd=club&canshu=deleteclub&sid=$sid");
-            $renzhicmd = $encode->encode("cmd=club&canshu=renzhi&sid=$sid");
-            $setting = $encode->encode("cmd=club&canshu=setting&sid=$sid");
-            $apply = $encode->encode("cmd=club&canshu=audit&sid=$sid");
-            $update = $encode->encode("cmd=club&canshu=update&sid=$sid");
+        $outclub = $encode->encode("cmd=club&canshu=outclub&sid=$sid");
+        $deleteclub = $encode->encode("cmd=club&canshu=deleteclub&sid=$sid");
+        $renzhicmd = $encode->encode("cmd=club&canshu=renzhi&sid=$sid");
+        $setting = $encode->encode("cmd=club&canshu=setting&sid=$sid");
+        $apply = $encode->encode("cmd=club&canshu=audit&sid=$sid");
+        $update = $encode->encode("cmd=club&canshu=update&sid=$sid");
+        $qiandao = $encode->encode("cmd=club&canshu=qiandao&sid=$sid");
+        $gongxian = $encode->encode("cmd=club&canshu=gongxian&sid=$sid");
+        $shangdian = $encode->encode("cmd=club&canshu=shangdian&sid=$sid");
+        $cangku = $encode->encode("cmd=club&canshu=cangku&sid=$sid");
+        $xujing = $encode->encode("cmd=club&canshu=xujing&sid=$sid");
+        $tichu = $encode->encode("cmd=club&canshu=tichu&sid=$sid&uclv=$clubplayer->uclv");
 
-            $clubmenu = "<a href='?cmd=$renzhicmd'>任职</a>";
+        $clubmenu = "<a href='?cmd=$qiandao'>签到</a>";
+        $clubmenu .= "<a href='?cmd=$gongxian'>贡献</a>";
+        $clubmenu .= "<a href='?cmd=$shangdian'>商店</a>";
+        $clubmenu .= "<a href='?cmd=$cangku'>仓库</a><br/>";
+        $clubmenu .= "<a href='?cmd=$xujing'>虚境</a>";
+        if ($clubplayer->uclv <= 3) {
             $clubmenu .= "<a href='?cmd=$apply'>审核</a>";
-            $clubmenu .= "<a href='?cmd=$update'>踢出</a>";
-            $clubmenu .= "<a href='?cmd=$update'>修改</a><br/>";
-            $clubmenu .= "<a href='?cmd=$update'>贡献</a>";
-            $clubmenu .= "<a href='?cmd=$update'>商店</a>";
-            $clubmenu .= "<a href='?cmd=$update'>仓库</a>";
-            $clubmenu .= "<a href='?cmd=$update'>虚境</a><br/>";
-            $clubmenu .= "<a href='?cmd=$outclubcmd'>签到</a>";
-            $clubmenu .= "<a href='?cmd=$outclubcmd'>解散</a>";
+            $clubmenu .= "<a href='?cmd=$tichu'>踢出</a>";
+        }
+        if ($clubplayer->uclv <= 2) {
+            $clubmenu .= "<a href='?cmd=$renzhicmd'>任职</a><br/>";
+            $clubmenu .= "<a href='?cmd=$update'>修改</a>";
             $clubmenu .= "<a href='?cmd=$setting'>设置</a>";
+        }
+        if ($clubplayer->uclv==1){
+            $clubmenu .= "<a href='?cmd=$deleteclub'>解散</a>";
+        }
+        if ($clubplayer->uclv > 1) {
+            $clubmenu .= "<a href='?cmd=$outclub'>判出</a>";
         }
     }else{
         $joincmd = $encode->encode("cmd=club&clubid=$clubid&canshu=joinclub&sid=$sid");
