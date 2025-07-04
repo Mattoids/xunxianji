@@ -88,6 +88,13 @@ if (isset($canshu)){
             }
             $pvper = \player\getplayer1($uid,$dblj);
             $pvperhurt = '-'.$pvperhurt;
+
+            // 战斗结束使用血池
+            if ($player->autoxc) {
+                $xuechi = \player\getplayeryaopinxc($sid, $dblj);
+                \player\useyaopin($xuechi->ypid,1,$sid,$dblj);
+            }
+
             if ($pvper->uhp<=0){
                 \player\changeplayersx("ispvp",0,$sid,$dblj);
                 \player\changeplayersx("ispvp",0,$pvper->sid,$dblj);
