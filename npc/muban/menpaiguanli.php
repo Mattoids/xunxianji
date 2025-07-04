@@ -41,9 +41,9 @@ HTML;
                 $gnhtml = "<br/>名称过长或过短<br/>";
                 break;
             }
-            $sql = "insert into club(clubname, clubinfo, clublv, clubexp, clubno1) VALUES (?,?,?,?,?)";
+            $sql = "insert into club(clubname, clubinfo, clublv, clubexp, clubno1, clubupexp, clubmxsum) VALUES (?,?,?,?,?,?,?)";
             $stmt = $dblj->prepare($sql);
-            $stmt->execute(array($clubname,$clubinfo,1,0,$player->uid));
+            $stmt->execute(array($clubname,$clubinfo,1,0,$player->uid, 1000, 20));
             $clubid = $dblj->lastInsertId();
 
             $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES (?,?,?,?)";

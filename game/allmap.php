@@ -21,7 +21,7 @@ for ($i=0;$i<count($cxallmap);$i++){
         <a href="?cmd=$gomid" >[$qyame]$mname</a>
 HTML;
     }
-    if ($br >= 3){
+    if ($br >= 1){
         $br = 0;
         $map.="<br/>"  ;
     }

@@ -1319,6 +1319,8 @@ class club{
     var $clubyxb;
     var $clubczb;
     var $clubautosh;
+    var $clubupexp;
+    var $clubmxsum;
 }
 function getclub($clubid,$dblj){
     $club = new club();
@@ -1333,6 +1335,8 @@ function getclub($clubid,$dblj){
     $retc->bindColumn("clubyxb",$club->clubyxb);
     $retc->bindColumn("clubczb",$club->clubczb);
     $retc->bindColumn("clubautosh",$club->clubautosh);
+    $retc->bindColumn("clubupexp",$club->clubupexp);
+    $retc->bindColumn("clubmxsum",$club->clubmxsum);
     $retc->fetch(\PDO::FETCH_ASSOC);
     return $club;
 }
@@ -1349,6 +1353,8 @@ class clubplayer{
     var $uid;
     var $sid;
     var $uclv;
+    var $qiandao;
+    var $clubexp;
 }
 
 /**
@@ -1364,11 +1370,20 @@ function getclubplayer_once($sid, $dblj){
     $retc->bindColumn('uid',$clubplayer->uid);
     $retc->bindColumn('uid',$clubplayer->uid);
     $retc->bindColumn('uclv',$clubplayer->uclv);
+    $retc->bindColumn('qiandao',$clubplayer->qiandao);
+    $retc->bindColumn('clubexp',$clubplayer->clubexp);
     $ret = $retc->fetch(\PDO::FETCH_ASSOC);
     if (!$ret){
         return $ret;
     }
     return $clubplayer;
+}
+
+function getclubplayer_count($clubid,$dblj){
+    $sql="select clubid from clubplayer WHERE clubid = $clubid";
+    $ret = $dblj->query($sql);
+    $row = $ret->rowCount();
+    return $row;
 }
 
 class duihuan{
@@ -1487,4 +1502,80 @@ function getclubplayerapply($clubid, $uid, $dblj){
         return $retc;
     }
     return $clubplayer;
+}
+
+class config{
+    var $code;
+    var $cdj;
+    var $cyp;
+    var $ccw;
+    var $cexp;
+    var $cxb;
+    var $czb;
+    var $cczb;
+    var $title;
+}
+
+function getconfig($code, $dblj) {
+    $config = new config();
+    $sql = "select * from config WHERE code = $code";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('code',$config->code);
+    $retc->bindColumn('cdj',$config->cdj);
+    $retc->bindColumn('cyp',$config->cyp);
+    $retc->bindColumn('ccw',$config->ccw);
+    $retc->bindColumn('cexp',$config->cexp);
+    $retc->bindColumn('cxb',$config->cxb);
+    $retc->bindColumn('czb',$config->czb);
+    $retc->bindColumn('cczb',$config->cczb);
+    $retc->bindColumn('title',$config->title);
+    $retc = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$retc){
+        return $retc;
+    }
+    return $config;
+}
+
+function getconfigjson($data, $column, $sid, $dblj, $ratio = 0, $isclub=0) {
+    foreach (explode(",", $data) as $item) {
+        $value = explode("|", $item);
+
+        $id = 0;
+        $sum = 0;
+
+        switch ($column) {
+            case 'cdj':
+                adddj($sid, $id, $sum, $dblj);
+                break;
+            case 'cyp':
+                addyaopin($sid, $id, $sum, $dblj);
+                break;
+            case 'ccw':
+                break;
+            case 'cexp':
+                if ($isclub == 1) {
+
+                } else {
+                    changeexp($sid, $dblj, $sum);
+                }
+                break;
+            case 'cxb':
+                if ($isclub == 1) {
+
+                } else {
+
+                }
+                break;
+            case 'czb':
+                addzb($sid, $id, $dblj);
+                break;
+            case 'cczb':
+                if ($isclub == 1) {
+
+                } else {
+
+                }
+                break;
+        }
+    }
 }

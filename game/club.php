@@ -160,7 +160,7 @@ if (isset($canshu)){
                 }
             }
             break;
-        case "update":
+        case "edit":
             $club = \player\getclub($clubplayer->clubid,$dblj);
             $gongneng = "=========修改简介=========<br/>";
             $gongneng .= "<form><input type='hidden' name='cmd' value='club'><input type='hidden' name='canshu' value='editinfo'><input type='hidden' name='sid' value='$sid'>门派说明:<br/><textarea name='clubinfo' style='height: 80px'>$club->clubinfo</textarea><br/><input type='submit' value='修改'></form><br/>";
@@ -184,7 +184,8 @@ if (isset($canshu)){
                 $ucmd = $encode->encode("cmd=getplayerinfo&uid=$uiditem[uid]&sid=$sid");
 
                 $applyplayer = \player\getplayer($uiditem['sid'], $dblj);
-                $gongneng .= "<a href='?cmd=$ucmd'>$applyplayer->uname</a> | <a href='?cmd=$tichures'>踢出</a><br/>";
+
+                $gongneng .= "<a href='?cmd=$ucmd'>$applyplayer->uname($uiditem[clubexp])</a> | <a href='?cmd=$tichures'>踢出</a><br/>";
             }
 
             $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
@@ -207,6 +208,65 @@ if (isset($canshu)){
                 }
             }
             break;
+        case "qiandao":
+            $clubplayer = \player\getclubplayer_once($sid,$dblj);
+            $date = date('Y-m-d');
+            if (!isset($clubplayer->qiandao) || $clubplayer->qiandao != $date) {
+                $sql="update clubplayer set qiandao='$date' WHERE sid='$sid'";
+                $dblj->exec($sql);
+
+                // TODO::奖励
+                $config = \player\getconfig("clubqiandao", $dblj);
+
+                echo "签到成功<br/>";
+            } else {
+                echo "你今天已签到，请不要重复签到！<br/>";
+            }
+            break;
+        case "upgrade":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            $playercount = \player\getclubplayer_count($club->clubid, $dblj);
+            $clubczbxs = 10 - $club->clublv + 1;
+            $clubyxbxs = 10 + $club->clublv - 1;
+            $clubmxsum = $club->clubmxsum + 10;
+            $clubyxb = $club->clubupexp * $clubyxbxs;
+            $clubczb = ceil($club->clubupexp / $clubczbxs);
+
+            $gongneng = "=========门派升级=========<br/>";
+            $gongneng .= "灵石: $club->clubyxb/$clubyxb<br/>";
+            $gongneng .= "建设度: $club->clubexp/$club->clubupexp<br/>";
+            $gongneng .= "极品灵石: $club->clubczb/$clubczb<br/><br/>";
+
+            $gongneng .= "=========升级收益=========<br/>";
+            $gongneng .= "成员数量: $playercount/$clubmxsum<br/>";
+            $gongneng .= "签到奖励提升<br/><br/>";
+
+            if ($club->clubyxb >= $clubyxb && $club->clubexp >= $club->clubupexp && $club->clubczb >= $clubczb) {
+                $upgrade = $encode->encode("cmd=club&canshu=upgraderun&sid=$sid");
+                $gongneng .= "<a href='?cmd=$upgrade'>确认升级</a><br/><br/>";
+            } else {
+                $gongneng .= "条件不足，无法升级！<br/><br/>";
+            }
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "upgraderun":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            $clubczbxs = 10 - $club->clublv + 1;
+            $clubyxbxs = 10 + $club->clublv - 1;
+            $clubyxb = $club->clubupexp * $clubyxbxs;
+            $clubczb = ceil($club->clubupexp / $clubczbxs);
+            $clubupexp = $club->clubupexp * ($club->clublv + 1) * $club->clublv;
+
+            if ($club->clubyxb >= $clubyxb && $club->clubexp >= $club->clubupexp && $club->clubczb >= $clubczb) {
+                $sql="update club set clublv=clublv+1, clubupexp=$clubupexp, clubexp=clubexp-$club->clubupexp, clubyxb=clubyxb-$clubyxb, clubczb=clubczb-$clubczb, clubmxsum=clubmxsum+10 WHERE clubid=$clubplayer->clubid";
+                $dblj->exec($sql);
+                echo "升级成功！<br/>";
+            } else {
+                echo "条件不足，请不要重复升级!<br/>";
+            }
+
+            break;
     }
 }
 if (isset($clubid) || $clubplayer){
@@ -223,13 +283,14 @@ if (isset($clubid) || $clubplayer){
         $renzhicmd = $encode->encode("cmd=club&canshu=renzhi&sid=$sid");
         $setting = $encode->encode("cmd=club&canshu=setting&sid=$sid");
         $apply = $encode->encode("cmd=club&canshu=audit&sid=$sid");
-        $update = $encode->encode("cmd=club&canshu=update&sid=$sid");
+        $edit = $encode->encode("cmd=club&canshu=edit&sid=$sid");
         $qiandao = $encode->encode("cmd=club&canshu=qiandao&sid=$sid");
         $gongxian = $encode->encode("cmd=club&canshu=gongxian&sid=$sid");
         $shangdian = $encode->encode("cmd=club&canshu=shangdian&sid=$sid");
         $cangku = $encode->encode("cmd=club&canshu=cangku&sid=$sid");
         $xujing = $encode->encode("cmd=club&canshu=xujing&sid=$sid");
         $tichu = $encode->encode("cmd=club&canshu=tichu&sid=$sid&uclv=$clubplayer->uclv");
+        $upgrade = $encode->encode("cmd=club&canshu=upgrade&sid=$sid");
 
         $clubmenu = "<a href='?cmd=$qiandao'>签到</a>";
         $clubmenu .= "<a href='?cmd=$gongxian'>贡献</a>";
@@ -242,13 +303,13 @@ if (isset($clubid) || $clubplayer){
         }
         if ($clubplayer->uclv <= 2) {
             $clubmenu .= "<a href='?cmd=$renzhicmd'>任职</a><br/>";
-            $clubmenu .= "<a href='?cmd=$update'>修改</a>";
+            $clubmenu .= "<a href='?cmd=$edit'>修改</a>";
+            $clubmenu .= "<a href='?cmd=$upgrade'>升级</a>";
             $clubmenu .= "<a href='?cmd=$setting'>设置</a>";
         }
         if ($clubplayer->uclv==1){
             $clubmenu .= "<a href='?cmd=$deleteclub'>解散</a>";
-        }
-        if ($clubplayer->uclv > 1) {
+        } else {
             $clubmenu .= "<a href='?cmd=$outclub'>判出</a>";
         }
     }else{
@@ -261,12 +322,13 @@ if (isset($clubid) || $clubplayer){
     $cbosscmd = $encode->encode("cmd=getplayerinfo&uid=$club->clubno1&sid=$sid");
     $clublist = $encode->encode("cmd=clublist&sid=$sid");
     
-    $sql="select uid,uclv from clubplayer WHERE clubid=$clubid ORDER BY uclv ASC ";
+    $sql="select uid,uclv,clubexp from clubplayer WHERE clubid=$clubid ORDER BY uclv ASC ";
     $ret = $dblj->query($sql);
     $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
     foreach ($retuid as $uiditem){
         $uid = $uiditem['uid'];
         $uclv = $uiditem['uclv'];
+        $clubexp = $uiditem['clubexp'];
         $chenhao = "[弟子]";
         switch ($uclv){
             case 1:
@@ -287,18 +349,22 @@ if (isset($clubid) || $clubplayer){
         }
         $otherplayer = \player\getplayer1($uid,$dblj);
         $ucmd = $encode->encode("cmd=getplayerinfo&uid=$uid&sid=$player->sid");
-        $playerlist .= "<a href='?cmd=$ucmd'>{$chenhao}{$otherplayer->uname}</a><br/>";
+        $playerlist .= "<a href='?cmd=$ucmd'>{$chenhao}{$otherplayer->uname}</a>({$clubexp})<br/>";
     }
+
+    $playercount = \player\getclubplayer_count($club->clubid, $dblj);
 
     $clubhtml =<<<HTML
 门派:$club->clubname<br/>
 创建者:<a href="?cmd=$cbosscmd" >$cboss->uname</a><br/>
+门派等级:$club->clublv<br/>
 门派资金:灵石[$club->clubyxb] 极品灵石[$club->clubczb]<br/>
-建设度:$club->clubexp<br/>
+建设度:$club->clubexp/$club->clubupexp<br/>
 门派介绍:<br/>$club->clubinfo<br/>
+成员数量:$playercount/$club->clubmxsum<br/>
 $clubmenu
 <br/><br/>
-$gongneng<br/>
+$gongneng
 门派成员：<br/>
 $playerlist
 <br/>
