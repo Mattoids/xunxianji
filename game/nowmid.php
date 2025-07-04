@@ -76,26 +76,46 @@ HTML;
 }
 if ($upmid->mname!=''){
     $lukouhtml .= <<<HTML
-    北:<a href="?cmd=$upmidlj">$upmid->mname ↑</a><br/>
+    北<br/><a href="?cmd=$upmidlj">$upmid->mname ↑</a><br/>
 HTML;
+} else {
+    $lukouhtml .= <<<HTML
+    北</br>此路不通 ↑<br/>
+HTML;
+
 }
 
 if ($leftmid->mname!=''){
     $lukouhtml .= <<<HTML
-    西:<a href="?cmd=$leftmidlj">$leftmid->mname ←</a><br/>
+    西:<a href="?cmd=$leftmidlj">← $leftmid->mname</a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+HTML;
+} else {
+    $lukouhtml .= <<<HTML
+    西:← 此路不通
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 HTML;
 }
 
 if ($rightmid->mname!=''){
     $lukouhtml .= <<<HTML
-    东:<a href="?cmd=$rightmidlj">$rightmid->mname →</a><br/>
+    <a href="?cmd=$rightmidlj">$rightmid->mname →</a>:东<br/>
+HTML;
+} else {
+    $lukouhtml .= <<<HTML
+    此路不通 →:东<br/>
 HTML;
 }
 
 if ($downmid->mname!=''){
     $lukouhtml .= <<<HTML
-    南:<a href="?cmd=$downmidlj">$downmid->mname ↓</a><br/>
+    <a href="?cmd=$downmidlj">$downmid->mname ↓</a><br/>南<br/>
 HTML;
+} else {
+    $lukouhtml .= <<<HTML
+    此路不通 ↓</a><br/>南<br/>
+HTML;
+
 }
 
 //$sql = "select * from midguaiwu where mid='$player->nowmid' AND sid = ''";//获取当前地图怪物
