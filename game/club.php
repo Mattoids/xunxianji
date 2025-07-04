@@ -22,7 +22,7 @@ if (isset($canshu)){
                 echo "恭喜你成功加入<br/>";
             } else {
                 $clubplayerapply = \player\getclubplayerapply($clubid, $player->uid, $dblj);
-                if (!$clubplayerapply) {
+                if (!$clubplayer && !$clubplayerapply) {
                     $sql = "insert into clubplayerapply(clubid, uid, sid) VALUES ($clubid,$player->uid,'$sid')";
                     $row = $dblj->exec($sql);
                     $clubplayer = \player\getclubplayer_once($sid,$dblj);
@@ -136,20 +136,42 @@ if (isset($canshu)){
             exit($gongneng);
         case "auditres":
             if (isset($confirm) && isset($clubid) && isset($uid)){
-                $sql="delete from clubplayerapply WHERE clubid='$clubplayer->clubid' AND uid=$uid";
-                $row = $dblj->exec($sql);
-
                 if ($confirm == 1) {
                     try {
                         $clubplayerapply = \player\getclubplayerapply($clubid, $uid, $dblj);
-                        $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES ($clubid,$uid,'$clubplayerapply->sid',6)";
-                        $row = $dblj->exec($sql);
-                        $clubplayer = \player\getclubplayer_once($sid,$dblj);
-                        echo "审核成功<br/>";
+                        if ($clubplayerapply->sid) {
+                            $sql = "insert into clubplayer(clubid, uid, sid, uclv) VALUES ($clubid,$uid,'$clubplayerapply->sid',6)";
+                            $row = $dblj->exec($sql);
+
+                            // 审核通过则拒绝该用户的其他申请信息
+                            $sql="delete from clubplayerapply WHERE uid=$uid";
+                            $row = $dblj->exec($sql);
+
+                            $clubplayer = \player\getclubplayer_once($sid,$dblj);
+                            echo "审核成功<br/>";
+                        } else {
+                            echo "用户申请已经被审核，请不要重复审核！<br/>";
+                        }
                     } catch (Exception $e) {
                         echo "审核失败<br/>";
                     }
+                } else {
+                    echo "已拒绝用户申请！<br/>";
                 }
+            }
+            break;
+        case "update":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            $gongneng = "=========修改简介=========<br/>";
+            $gongneng .= "<form><input type='hidden' name='cmd' value='club'><input type='hidden' name='canshu' value='editinfo'><input type='hidden' name='sid' value='$sid'>门派说明:<br/><textarea name='clubinfo' style='height: 80px'>$club->clubinfo</textarea><br/><input type='submit' value='修改'></form><br/>";
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "editinfo":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            if (isset($clubinfo) && $club->clubinfo != $clubinfo){
+                $sql="update club set clubinfo = '$clubinfo' WHERE clubid = $clubplayer->clubid";
+                $dblj->exec($sql);
+                echo "修改成功!<br/>";
             }
             break;
     }
@@ -170,9 +192,17 @@ if (isset($clubid) || $clubplayer){
             $renzhicmd = $encode->encode("cmd=club&canshu=renzhi&sid=$sid");
             $setting = $encode->encode("cmd=club&canshu=setting&sid=$sid");
             $apply = $encode->encode("cmd=club&canshu=audit&sid=$sid");
+            $update = $encode->encode("cmd=club&canshu=update&sid=$sid");
 
             $clubmenu = "<a href='?cmd=$renzhicmd'>任职</a>";
             $clubmenu .= "<a href='?cmd=$apply'>审核</a>";
+            $clubmenu .= "<a href='?cmd=$update'>踢出</a>";
+            $clubmenu .= "<a href='?cmd=$update'>修改</a><br/>";
+            $clubmenu .= "<a href='?cmd=$update'>贡献</a>";
+            $clubmenu .= "<a href='?cmd=$update'>商店</a>";
+            $clubmenu .= "<a href='?cmd=$update'>仓库</a>";
+            $clubmenu .= "<a href='?cmd=$update'>虚境</a><br/>";
+            $clubmenu .= "<a href='?cmd=$outclubcmd'>签到</a>";
             $clubmenu .= "<a href='?cmd=$outclubcmd'>解散</a>";
             $clubmenu .= "<a href='?cmd=$setting'>设置</a>";
         }
