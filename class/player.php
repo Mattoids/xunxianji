@@ -774,6 +774,24 @@ function changeczb($lx,$gaibian,$sid,$dblj){//改变货币
     }
 }
 
+function changclubexp($lx, $gaibian, $sid, $dblj) {
+    $clubplayer = getclubplayer_once($sid, $dblj);
+    if ($lx==1){
+        $sql = "update clubplayer set clubexp = clubexp + $gaibian WHERE sid='$sid'";
+        $dblj->exec($sql);
+        return true;
+    }elseif($lx==2){
+        if ($clubplayer->clubexp - $gaibian >= 0){
+            $sql = "update clubplayer set clubexp = clubexp - $gaibian WHERE sid='$sid'";
+            $dblj->exec($sql);
+            return true;
+        }else{
+            return false;
+        }
+
+    }
+}
+
 class task{
     var $rwname;
     var $rwinfo;
@@ -1355,6 +1373,8 @@ class clubplayer{
     var $uclv;
     var $qiandao;
     var $clubexp;
+    var $gongxian;
+    var $xujing;
 }
 
 /**
@@ -1372,6 +1392,8 @@ function getclubplayer_once($sid, $dblj){
     $retc->bindColumn('uclv',$clubplayer->uclv);
     $retc->bindColumn('qiandao',$clubplayer->qiandao);
     $retc->bindColumn('clubexp',$clubplayer->clubexp);
+    $retc->bindColumn('gongxian',$clubplayer->gongxian);
+    $retc->bindColumn('xujing',$clubplayer->xujing);
     $ret = $retc->fetch(\PDO::FETCH_ASSOC);
     if (!$ret){
         return $ret;
@@ -1578,4 +1600,28 @@ function getconfigjson($data, $column, $sid, $dblj, $ratio = 0, $isclub=0) {
                 break;
         }
     }
+}
+
+class clubstore {
+    var $csid;
+    var $wpid;
+    var $type;
+    var $price;
+    var $clublv;
+}
+
+function getclubstore($csid, $dblj) {
+    $clubstore = new clubstore();
+    $sql = "select * from clubstore WHERE csid = $csid";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('csid',$clubstore->csid);
+    $retc->bindColumn('wpid',$clubstore->wpid);
+    $retc->bindColumn('type',$clubstore->type);
+    $retc->bindColumn('price',$clubstore->price);
+    $retc->bindColumn('clublv',$clubstore->clublv);
+    $retc = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$retc){
+        return $retc;
+    }
+    return $clubstore;
 }

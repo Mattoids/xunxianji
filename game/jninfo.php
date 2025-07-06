@@ -44,7 +44,7 @@ if (isset($canshu)){
 }
 
 $dhhtml = "兑换需要：$dhdaoju->djname($daoju->djsum/$jineng->djcount)<a href='?cmd=$duihuan'>兑换<a/><br/><br/>";
-if ($playerjn){
+if ($playerjn && !isset($isstore)){
     $setjn1 = $encode->encode("cmd=jninfo&canshu=setjn1&jnid=$jnid&sid=$sid");
     $setjn2 = $encode->encode("cmd=jninfo&canshu=setjn2&jnid=$jnid&sid=$sid");
     $setjn3 = $encode->encode("cmd=jninfo&canshu=setjn3&jnid=$jnid&sid=$sid");

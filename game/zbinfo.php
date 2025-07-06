@@ -6,6 +6,9 @@ $zhuangbei = new \player\zhuangbei();
 if ($zbnowid!=0){
     $zhuangbei = player\getzb($zbnowid,$dblj);
 }
+if (isset($zbid)) {
+    $zhuangbei = \player\getzbkzb($zbid,$dblj);
+}
 
 $arr = array($player->tool1,$player->tool2,$player->tool3,$player->tool4,$player->tool5,$player->tool6);
 $setzbwz='';

@@ -33,7 +33,7 @@ if (isset($canshu)){
     }
 }
 $playeryp = \player\getplayeryaopin($ypid,$sid,$dblj);
-if ($playeryp){
+if ($playeryp && !isset($isstore)){
     $setyp1 = $encode->encode("cmd=ypinfo&canshu=setyp1&ypid=$ypid&sid=$sid");
     $setyp2 = $encode->encode("cmd=ypinfo&canshu=setyp2&ypid=$ypid&sid=$sid");
     $setyp3 = $encode->encode("cmd=ypinfo&canshu=setyp3&ypid=$ypid&sid=$sid");
@@ -46,20 +46,20 @@ if ($playeryp){
     <a href="?cmd=$useyp">使用</a>
 HTML;
 }
-if($playeryp->yphp!=0){
-    $yphp = "气血".$playeryp->yphp."<br/>";
+if($yaopin->yphp!=0){
+    $yphp = "气血".$yaopin->yphp."<br/>";
 }
-if ($playeryp->ypgj!=0){
-    $ypgj = "攻击".$playeryp->ypgj."<br/>";
+if ($yaopin->ypgj!=0){
+    $ypgj = "攻击".$yaopin->ypgj."<br/>";
 }
-if ($playeryp->ypfy!=0){
-    $ypfy = "防御".$playeryp->ypfy."<br/>";
+if ($yaopin->ypfy!=0){
+    $ypfy = "防御".$yaopin->ypfy."<br/>";
 }
-if ($playeryp->ypbj!=0){
-    $ypbj = "暴击".$playeryp->ypbj."<br/>";
+if ($yaopin->ypbj!=0){
+    $ypbj = "暴击".$yaopin->ypbj."<br/>";
 }
-if ($playeryp->ypxx!=0){
-    $ypxx = "吸血".$playeryp->ypxx."<br/>";
+if ($yaopin->ypxx!=0){
+    $ypxx = "吸血".$yaopin->ypxx."<br/>";
 }
 $ypsx = "<br/>".$yphp.$ypgj.$ypfy.$ypbj.$ypxx;
 $ypinfo = <<<HTML

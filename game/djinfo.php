@@ -6,7 +6,7 @@ $chushou = $encode->encode("cmd=djinfo&canshu=chushou&djid=$djid&sid=$sid");
 $daoju = \player\getplayerdaoju($sid,$djid,$dblj);
 $player = \player\getplayer($sid,$dblj);
 $djhtml = '';
-if ($daoju){
+if ($daoju && !isset($isstore)){
     $self = $_SERVER['PHP_SELF'];
     $djhtml =<<<HTML
     <br/>

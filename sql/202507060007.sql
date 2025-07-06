@@ -1,0 +1,1 @@
+ALTER TABLE `clubplayer` ADD COLUMN `gongxian` date NULL COMMENT '贡献时间' AFTER `clubexp`, ADD COLUMN `xujing` date NULL COMMENT '攻打虚境时间' AFTER `gongxian`;

@@ -63,7 +63,7 @@ if (isset($canshu)){
         case "renzhi":
             if ($clubplayer){
                 if (isset($zhiwei)){
-                    $sql="select uid from clubplayer WHERE clubid=$clubplayer->clubid AND uclv > $clubplayer->uclv";
+                    $sql="select uid, clubexp from clubplayer WHERE clubid=$clubplayer->clubid AND uclv > $clubplayer->uclv";
                     $ret = $dblj->query($sql);
                     $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
                     foreach ($retuid as $uiditem){
@@ -73,7 +73,7 @@ if (isset($canshu)){
                         }
                         $otherplayer = \player\getplayer1($uid,$dblj);
                         $ucmd = $encode->encode("cmd=club&canshu=zhiwei&zhiwei=$zhiwei&uid=$uid&sid=$sid");
-                        $playerlist .= "<a href='?cmd=$ucmd'>{$otherplayer->uname}</a><br/>";
+                        $playerlist .= "<a href='?cmd=$ucmd'>{$otherplayer->uname}({$uiditem['clubexp']})</a><br/>";
 
                     }
                     $gongneng =  "=========选择任职人员=========<br/>$playerlist<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
@@ -209,6 +209,21 @@ if (isset($canshu)){
             }
             break;
         case "qiandao":
+            $qiandao = $encode->encode("cmd=club&canshu=qiandaorun&sid=$sid");
+            $gongneng = "=========签到=========<br/>";
+
+            $gongneng .= "签到奖励与门派等级<br/>和贡献度有关，门派<br/>等级和贡献度越高奖<br/>励越丰富！<br/><br/>";
+
+            $date = date('Y-m-d');
+            if (!isset($clubplayer->qiandao) || $clubplayer->qiandao != $date) {
+                $gongneng .= "<a href='?cmd=$qiandao'>确认签到</a><br/><br/>";
+            } else {
+                $gongneng .= "你今天已经签过到了！<br/><br/>";
+            }
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "qiandaorun":
             $clubplayer = \player\getclubplayer_once($sid,$dblj);
             $date = date('Y-m-d');
             if (!isset($clubplayer->qiandao) || $clubplayer->qiandao != $date) {
@@ -265,8 +280,123 @@ if (isset($canshu)){
             } else {
                 echo "条件不足，请不要重复升级!<br/>";
             }
-
             break;
+        case "gongxian":
+            $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80&uyxb=100");
+            $gxyxb2 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=200&uyxb=200");
+            $gxyxb3 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=600&uyxb=500");
+            $gxczb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=230&uczb=100");
+            $gxczb2 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=580&uczb=200");
+            $gxczb3 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=1300&uczb=500");
+            $gongneng = "=========门派贡献=========<br/><br/>";
+
+            if (isset($gongxian)) {
+                $date = date('Y-m-d');
+                if (isset($clubplayer->gongxian) || $clubplayer->gongxian = $date) {
+                    $gongnenghtml = "你今天已经贡献过了<br/><br/>";
+                } else {
+                    $result = false;
+                    if (isset($uyxb)) {
+                        $result = \player\changeyxb(2, $uyxb, $sid, $dblj);
+                    }
+                    if (isset($uczb)) {
+                        $result = \player\changeczb(2, $uczb, $sid, $dblj);
+                    }
+
+                    if ($result) {
+                        $sql="update clubplayer set gongxian='$date', clubexp=clubexp+$gongxian WHERE sid='$sid'";
+                        $dblj->exec($sql);
+
+                        $sql="update club set clubexp=clubexp+$gongxian WHERE clubid=$clubplayer->clubid";
+                        $dblj->exec($sql);
+
+                        \player\changeexp($sid, $dblj, $gongxian);
+
+                        $gongnenghtml = "获得修为：$gongxian<br/>获得贡献点：$gongxian<br/>获得门派建设度：$gongxian<br/><br/>";
+                    } else {
+                        $gongnenghtml = "剩余灵石或极品灵石不足！<br/><br/>";
+                    }
+
+                    $clubplayer = \player\getclubplayer_once($sid,$dblj);
+                }
+            }
+
+            $gongneng .= "我的贡献点：$clubplayer->clubexp<br/>";
+            $gongneng .= "<a href='?cmd=$gxyxb1'>贡献100灵石</a>/<a href='?cmd=$gxczb1'>贡献100极品灵石</a><br/>";
+            $gongneng .= "<a href='?cmd=$gxyxb2'>贡献200灵石</a>/<a href='?cmd=$gxczb2'>贡献200极品灵石</a><br/>";
+            $gongneng .= "<a href='?cmd=$gxyxb3'>贡献500灵石</a>/<a href='?cmd=$gxczb3'>贡献500极品灵石</a><br/><br/>";
+            $gongneng .= $gongnenghtml;
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+
+        case "shangdian":
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80");
+            $gongneng = "=========门派商店=========<br/>";
+            $gongneng .= "我的贡献点：$clubplayer->clubexp<br/><br/>";
+
+            $sql="select * from clubstore WHERE clublv <= $club->clublv";
+            $ret = $dblj->query($sql);
+            $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($retuid as $item) {
+                $name = "";
+                switch ($item['type']) {
+                    case 1:
+                        $shangpin = $encode->encode("cmd=djinfo&djid=$item[wpid]&sid=$sid&isstore=1");
+                        $wupin = \player\getdaoju($item['wpid'], $dblj);
+                        $name = $wupin->djname;
+                        break;
+                    case 2:
+                        $shangpin = $encode->encode("cmd=ypinfo&ypid=$item[wpid]&sid=$sid&isstore=1");
+                        $wupin = \player\getyaopinonce($item['wpid'], $dblj);
+                        $name = $wupin->ypname;
+                        break;
+                    case 3:
+                        $shangpin = $encode->encode("cmd=zbinfo&zbid=$item[wpid]&sid=$sid&isstore=1");
+                        $wupin = \player\getzbkzb($item['wpid'], $dblj);
+                        $name = $wupin->zbname;
+                        break;
+                    case 4:
+                        break;
+                }
+
+                $goumai1 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
+                $goumai5 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
+                $goumai10 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
+                if ($item['type'] == 3 || $item['type'] ==4) {
+                    $gongneng .= "<a href='?cmd=$shangpin'>$name--$item[price]</a><a href='?cmd=$goumai1'>购买1</a> 购买5 购买10<br/>";
+                } else {
+                    $gongneng .= "<a href='?cmd=$shangpin'>$name--$item[price]</a><a href='?cmd=$goumai1'>购买1</a><a href='?cmd=$goumai5'>购买5</a><a href='?cmd=$goumai10'>购买10</a><br/>";
+                }
+            }
+
+            if (isset($csid) && isset($sum)) {
+                $clubstore = \player\getclubstore($csid, $dblj);
+                if (\player\changclubexp(2, $clubstore->price, $sid, $dblj)) {
+                    switch ($item['type']) {
+                        case 1:
+                            \player\adddj($sid, $csid, $sum, $dblj);
+                            break;
+                        case 2:
+                            \player\addyaopin($sid, $csid, $sum, $dblj);
+                            break;
+                        case 3:
+                            \player\addzb($sid, $csid, $dblj);
+                            break;
+                        case 4:
+                            break;
+                    }
+                    $gongneng .= "兑换成功！";
+                } else {
+                    $gongneng .= "贡献点不足，无法兑换！";
+                }
+            }
+
+            $gongneng .= "<br/>";
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
     }
 }
 if (isset($clubid) || $clubplayer){
