@@ -163,7 +163,7 @@ if (isset($canshu)){
         case "edit":
             $club = \player\getclub($clubplayer->clubid,$dblj);
             $gongneng = "=========修改简介=========<br/>";
-            $gongneng .= "<form><input type='hidden' name='cmd' value='club'><input type='hidden' name='canshu' value='editinfo'><input type='hidden' name='sid' value='$sid'>门派说明:<br/><textarea name='clubinfo' style='height: 80px'>$club->clubinfo</textarea><br/><input type='submit' value='修改'></form><br/>";
+            $gongneng .= "<form><input type='hidden' name='cmd' value='club'><input type='hidden' name='canshu' value='editinfo'><input type='hidden' name='sid' value='$sid'>门派说明:<br/><textarea name='clubinfo' style='height: 80px'>$club->clubinfo</textarea><br/><input type='submit' value='确认修改'></form><br/>";
             $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
             exit($gongneng);
         case "editinfo":
@@ -332,10 +332,33 @@ if (isset($canshu)){
 
         case "shangdian":
             $club = \player\getclub($clubplayer->clubid,$dblj);
-            $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80");
             $gongneng = "=========门派商店=========<br/>";
-            $gongneng .= "我的贡献点：$clubplayer->clubexp<br/><br/>";
+            if (isset($csid) && isset($sum)) {
+                $clubstore = \player\getclubstore($csid, $dblj);
+                $price = $clubstore->price * $sum;
+                if (\player\changclubexp(2, $price, $sid, $dblj)) {
+                    switch ($clubstore->type) {
+                        case 1:
+                            \player\adddj($sid, $clubstore->wpid, $sum, $dblj);
+                            break;
+                        case 2:
+                            \player\addyaopin($sid, $clubstore->wpid, $sum, $dblj);
+                            break;
+                        case 3:
+                            \player\addzb($sid, $clubstore->wpid, $dblj);
+                            break;
+                        case 4:
+                            break;
+                    }
+                    $gongneng .= "购买成功！</br>";
+                    $clubplayer = \player\getclubplayer_once($sid, $dblj);
+                } else {
+                    $gongneng .= "贡献点不足，无法购买！</br>";
+                }
+            }
 
+            $gongneng .= "我的贡献点：$clubplayer->clubexp<br/><br/>";
+            $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80");
             $sql="select * from clubstore WHERE clublv <= $club->clublv";
             $ret = $dblj->query($sql);
             $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
@@ -363,8 +386,8 @@ if (isset($canshu)){
                 }
 
                 $goumai1 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
-                $goumai5 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
-                $goumai10 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=1");
+                $goumai5 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=5");
+                $goumai10 = $encode->encode("cmd=club&canshu=shangdian&sid=$sid&csid=$item[csid]&sum=10");
                 if ($item['type'] == 3 || $item['type'] ==4) {
                     $gongneng .= "<a href='?cmd=$shangpin'>$name--$item[price]</a><a href='?cmd=$goumai1'>购买1</a> 购买5 购买10<br/>";
                 } else {
@@ -372,29 +395,99 @@ if (isset($canshu)){
                 }
             }
 
-            if (isset($csid) && isset($sum)) {
-                $clubstore = \player\getclubstore($csid, $dblj);
-                if (\player\changclubexp(2, $clubstore->price, $sid, $dblj)) {
-                    switch ($item['type']) {
-                        case 1:
-                            \player\adddj($sid, $csid, $sum, $dblj);
-                            break;
-                        case 2:
-                            \player\addyaopin($sid, $csid, $sum, $dblj);
-                            break;
-                        case 3:
-                            \player\addzb($sid, $csid, $dblj);
-                            break;
-                        case 4:
-                            break;
-                    }
-                    $gongneng .= "兑换成功！";
-                } else {
-                    $gongneng .= "贡献点不足，无法兑换！";
-                }
+            $gongneng .= "<br/>";
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+
+        case "cangku":
+            $gongneng = "=========门派仓库=========<br/>";
+
+            if ($clubplayer->uclv <= 3) {
+                $addcangku = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&type=zb&page=1");
+                $gongneng .= "<a href='?cmd=$addcangku'>添加物品</a><br/>";
+            }
+
+            $gongneng .= "我的贡献点：$clubplayer->clubexp<br/><br/>";
+            $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80");
+            $sql="select * from clubwarehouse WHERE clubid = $clubplayer->clubid AND uclv <= $clubplayer->uclv";
+            $ret = $dblj->query($sql);
+            $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($retuid as $item) {
+
             }
 
             $gongneng .= "<br/>";
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "addcangku":
+            if (isset($page)) {
+                $zhuagnbei = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&type=zb&page=$page");
+                $daojucmd = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&type=dj&page=$page");
+                $chongwucmd = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&type=cw&page=$page");
+                if (isset($type)) {
+                    $where = [];
+                    switch ($type) {
+                        case 'zb':
+                            $gongneng = "【装备|<a href='?cmd=$daojucmd'>道具</a>|<a href='?cmd=$chongwucmd'>宠物</a>】<br/>";
+                            $where = ['sid' => $sid];
+                            $result = \player\getpage('playerzhuangbei', $page, 10, $where, $dblj);
+
+                            foreach ($result->list as $item) {
+                                $addck = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&wpid=$item[zbnowid]&type=$type");
+                                $shangpin = $encode->encode("cmd=zbinfo&zbid=$item[zbid]&sid=$sid&isstore=1");
+                                $gongneng .= "<a href='?cmd=$shangpin'>$item[zbname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
+                            }
+                            break;
+                        case 'dj':
+                            $gongneng = "【<a href='?cmd=$zhuagnbei'>装备</a>|道具|<a href='?cmd=$chongwucmd'>宠物</a>】<br/>";
+                            $where = ['sid' => $sid];
+                            $result = \player\getpage('playerdaoju', $page, 10, $where, $dblj);
+
+                            foreach ($result->list as $item) {
+                                $addck = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&wpid=$item[djid]&type=$type");
+                                $shangpin = $encode->encode("cmd=djinfo&djid=$item[djid]&sid=$sid&isstore=1");
+                                $gongneng .= "<a href='?cmd=$shangpin'>$item[djname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
+                            }
+                            break;
+                        case 'cw':
+                            $gongneng = "【<a href='?cmd=$zhuagnbei'>装备</a>|<a href='?cmd=$daojucmd'>道具</a>|宠物】<br/>";
+                            $where = ['sid' => $sid, 'cwid' => ['value' => $player->cw, 'operator' => '!=']];
+                            $result = \player\getpage('playerchongwu', $page, 10, $where, $dblj);
+
+                            foreach ($result->list as $item) {
+                                $addck = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&wpid=$item[cwid]&type=$type");
+                                $shangpin = $encode->encode("cmd=chongwu&cwid=$item[cwid]&canshu=cwinfo&sid=$sid&isstore=1");
+                                $gongneng .= "<a href='?cmd=$shangpin'>$item[cwname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
+                            }
+                            break;
+                    }
+                }
+            }
+            if (isset($wpid) && isset($type)) {
+                $gongneng = "=========添加物品=========<br/><br/>";
+                switch ($type) {
+                    case 'zb':
+                        $shangpin = $encode->encode("cmd=zbinfo&zbid=$wpid&sid=$sid&isstore=1");
+                        $wupin = \player\getzb($wpid, $dblj);
+                        $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->zbname}</a><br/><br/>";
+                        break;
+                    case 'dj':
+                        $shangpin = $encode->encode("cmd=djinfo&djid=$wpid&sid=$sid&isstore=1");
+                        $wupin = \player\getplayerdaoju($sid, $wpid, $dblj);
+                        $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->djname}</a><br/><br/>";
+                        $gongnenghtml = "添加数量: <input type='text' name='num'/><br/>";
+                        break;
+                    case 'cw':
+                        $shangpin = $encode->encode("cmd=chongwu&cwid=$wpid&canshu=cwinfo&sid=$sid&isstore=1");
+                        $wupin = \player\getchongwu($wpid, $dblj);
+                        $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->cwname}</a><br/><br/>";
+                        break;
+                }
+                $gongneng .= "<form><input type='hidden' name='cmd' value='club'/><input type='hidden' name='canshu' value='addcangku'/><input type='hidden' name='sid' value='$sid'/><input type='hidden' name='type' value='$type'/><input type='hidden' name='wpid' value='$type'/>{$gongnenghtml}兑换价格: <input type='text' name='price'/><br/><br/><input type='submit' value='加入仓库'></form>";
+
+                $gongneng .= "<br/>";
+            }
             $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
             exit($gongneng);
     }

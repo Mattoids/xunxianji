@@ -26,7 +26,50 @@ if (isset($canshu)){
             \player\delechongwu($cwid,$sid,$dblj);
             break;
         case 'cwinfo':
+            $chushou = "";
+
+            if ($player->cw != $cwid && !isset($isstore)) {
+                $chushou .= "<form>";
+                $chushou .= "<input type='hidden' name='cmd' value='chongwu'>";
+                $chushou .= "<input type='hidden' name='canshu' value='cwinfo'>";
+                $chushou .= "<input type='hidden' name='cwid' value='$cwid'>";
+                $chushou .= "<input type='hidden' name='sid' value='$sid'>";
+                $chushou .= "挂售单价：<input type='number' name='pay'>";
+                $chushou .= "<input type='submit' value='挂售'>";
+                $chushou .= "</form><br/><br/>";
+            }
+
             $chongwu = \player\getchongwu($cwid, $dblj);
+            if (isset($pay)) {
+                try {
+                    $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+                    $dblj->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    $dblj->beginTransaction();
+
+                    $sql = "insert into `fangshi_cw`(pay, uid, cwid, cwname, cwhp, cwmaxhp, cwgj, cwfy, cwbj, cwxx, 
+                         cwlv, cwexp, tool1, tool2, tool3, tool4, tool5, tool6, uphp, upgj, upfy, cwpz) VALUES 
+                         ($pay, $player->uid, $chongwu->cwid, '$chongwu->cwname','$chongwu->cwhp','$chongwu->cwmaxhp','$chongwu->cwgj','$chongwu->cwfy','$chongwu->cwbj','$chongwu->cwxx',
+                          '$chongwu->cwlv','$chongwu->cwexp','$chongwu->tool1','$chongwu->tool2','$chongwu->tool3','$chongwu->tool4','$chongwu->tool5', '$chongwu->tool6',
+                          '$chongwu->uphp','$chongwu->upgj','$chongwu->upfy','$chongwu->cwpz')";
+                    $affected_rows = $dblj->exec($sql);
+                    if (!$affected_rows){
+                        throw new PDOException("宠物挂售失败<br/>");//那个错误抛出异常
+                    }
+                    $sql="UPDATE `playerchongwu` SET sid='' WHERE cwid = $cwid";
+                    $affected_rows=$dblj->exec($sql);
+                    if (!$affected_rows){
+                        throw new PDOException("宠物传送失败<br/>");//那个错误抛出异常
+                    }
+                    echo "挂售成功！<br/>";
+                    $dblj->commit();//交易成功就提交
+                } catch (PDOException $e) {
+                    echo $e->getMessage();
+                    $dblj->rollBack();
+                }
+                $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);//关闭
+                $chongwu = \player\getchongwu($cwid, $dblj);
+            }
+
             $pzarr = array('普通', '优秀', '卓越', '非凡', '完美', '逆天');
             $cwpz = $pzarr[$chongwu->cwpz];
             $chongwu->cwpz = $chongwu->cwpz * 10;
@@ -46,12 +89,11 @@ if (isset($canshu)){
             防御成长:$chongwu->upfy<br/>
             品质[$cwpz]在升级时加成$chongwu->cwpz%<br/>
             <br/><br/>
+            $chushou
             <button onClick="javascript :history.back(-1);">返回上一页</button><br/>
             <a href="game.php?cmd=$gonowmid">返回游戏</a>
 HTML;
-            echo $cwhtml;
-            exit();
-            break;
+            exit($cwhtml);
     }
 }
 

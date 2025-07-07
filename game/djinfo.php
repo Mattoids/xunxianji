@@ -19,6 +19,7 @@ if ($daoju && !isset($isstore)){
     <input type="number" name="djcount"><br/>
     出售单价：<br/>
     <input type="number" name="pay"> 
+    <br/><br/>
     <input type="submit" value="出售">
     </form>
 HTML;

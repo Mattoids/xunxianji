@@ -935,6 +935,7 @@ function useyaopin($ypid,$ypsum,$sid,$dblj){
 }
 
 class chongwu{
+    var $cwid;
     var $cwname;
     var $cwlv;
     var $cwexp;
@@ -971,6 +972,7 @@ function getchongwu($cwid, $dblj){
     $rangesexp = array(2, 4, 6, 9, 12.5, 15, 17.5);
     $sql = "select * from playerchongwu WHERE cwid = $cwid ";
     $cxjg = $dblj->query($sql);
+    $cxjg->bindColumn("cwid",$chongwu->cwid);
     $cxjg->bindColumn("cwname",$chongwu->cwname);
     $cxjg->bindColumn("cwlv",$chongwu->cwlv);
     $cxjg->bindColumn("cwexp",$chongwu->cwexp);
@@ -1271,6 +1273,14 @@ class fangshi_zb{
     var $payid;
     var $uid;
 }
+
+class fangshi_cw {
+    var $payid;
+    var $pay;
+    var $uid;
+    var $cwid;
+}
+
 function getfangshi_once($lx,$payid,$dblj){
     switch ($lx){
         case "daoju":
@@ -1302,6 +1312,19 @@ function getfangshi_once($lx,$payid,$dblj){
                 return $fszb;
             }
             return $zb;
+        case "chongwu":
+            $fscw = new fangshi_cw();
+            $sql = "select * from `fangshi_cw` WHERE payid = $payid";
+            $redj = $dblj->query($sql);
+            $redj->bindColumn('cwid',$fscw->cwid);
+            $redj->bindColumn('payid',$fscw->payid);
+            $redj->bindColumn('uid',$fscw->uid);
+            $redj->bindColumn("pay",$fscw->pay);
+            $cw = $redj->fetch(\PDO::FETCH_ASSOC);
+            if ($cw){
+                return $fscw;
+            }
+            return $cw;
     }
 
 }
@@ -1323,8 +1346,12 @@ function getfangshi_all($lx, $dblj){
             $redj = $dblj->query($sql);
             $dj = $redj->fetchAll(\PDO::FETCH_ASSOC);
             return $dj;
+        case "chongwu":
+            $sql = "select * from `fangshi_cw`";
+            $redj = $dblj->query($sql);
+            $cw = $redj->fetchAll(\PDO::FETCH_ASSOC);
+            return $cw;
     }
-
 }
 
 class club{
@@ -1374,7 +1401,6 @@ class clubplayer{
     var $qiandao;
     var $clubexp;
     var $gongxian;
-    var $xujing;
 }
 
 /**
@@ -1393,7 +1419,6 @@ function getclubplayer_once($sid, $dblj){
     $retc->bindColumn('qiandao',$clubplayer->qiandao);
     $retc->bindColumn('clubexp',$clubplayer->clubexp);
     $retc->bindColumn('gongxian',$clubplayer->gongxian);
-    $retc->bindColumn('xujing',$clubplayer->xujing);
     $ret = $retc->fetch(\PDO::FETCH_ASSOC);
     if (!$ret){
         return $ret;
@@ -1624,4 +1649,143 @@ function getclubstore($csid, $dblj) {
         return $retc;
     }
     return $clubstore;
+}
+
+class clubwarehouse {
+    var $cwid;
+    var $clubid;
+    var $type;
+    var $num;
+    var $price;
+    var $uclv;
+    var $attribute;
+}
+
+function getclubwarehouse($cwid, $dblj) {
+    $clubwarehouse = new clubwarehouse();
+    $sql = "select * from clubwarehouse WHERE cwid = $cwid";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('cwid',$clubwarehouse->cwid);
+    $retc->bindColumn('clubid',$clubwarehouse->clubid);
+    $retc->bindColumn('type',$clubwarehouse->type);
+    $retc->bindColumn('num',$clubwarehouse->num);
+    $retc->bindColumn('price',$clubwarehouse->price);
+    $retc->bindColumn('uclv',$clubwarehouse->uclv);
+    $retc->bindColumn('attribute',$clubwarehouse->attribute);
+    $retc = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$retc){
+        return $retc;
+    }
+    return $clubwarehouse;
+}
+
+
+class SqlWhereBuilder {
+    private $conditions = [];
+
+    public function __construct($input) {
+        $this->parseInput($input);
+    }
+
+    private function parseInput($input) {
+        foreach ($input as $key => $value) {
+            if (is_array($value)) {
+                // 处理数组条件
+                $this->handleArrayCondition($key, $value);
+            } elseif (is_object($value)) {
+                // 处理对象条件
+                $this->handleObjectCondition($key, $value);
+            } else {
+                // 处理简单条件
+                $this->conditions[] = "$key = '" . addslashes($value) . "'";
+            }
+        }
+    }
+
+    private function handleArrayCondition($key, $value) {
+        if (isset($value['operator'])) {
+            // 处理带有操作符的条件
+            $operator = strtoupper($value['operator']);
+            $valueStr = addslashes($value['value']);
+            $this->conditions[] = "$key $operator '$valueStr'";
+        } elseif (isset($value['group'])) {
+            // 处理组合条件
+            $this->handleGroupCondition($value['group']);
+        } elseif (isset($value['not_in'])) {
+            // 处理 NOT IN 条件
+            $values = array_map('addslashes', $value['not_in']);
+            $valuesList = implode("', '", $values);
+            $this->conditions[] = "$key NOT IN ('$valuesList')";
+        } else {
+            // 处理简单数组条件（IN）
+            $values = array_map('addslashes', $value);
+            $valuesList = implode("', '", $values);
+            $this->conditions[] = "$key IN ('$valuesList')";
+        }
+    }
+
+    private function handleGroupCondition($group) {
+        $groupConditions = [];
+        foreach ($group as $condition) {
+            if (is_array($condition)) {
+                // 递归处理条件
+                $subCondition = $this->parseSubCondition($condition);
+                if ($subCondition) {
+                    $groupConditions[] = "($subCondition)";
+                }
+            }
+        }
+        $this->conditions[] = implode(' OR ', $groupConditions);
+    }
+
+    private function parseSubCondition($condition) {
+        $subConditions = [];
+        foreach ($condition as $key => $value) {
+            if (is_array($value) && isset($value['operator'])) {
+                // 处理带有操作符的条件
+                $operator = strtoupper($value['operator']);
+                $valueStr = addslashes($value['value']);
+                $subConditions[] = "$key $operator '$valueStr'";
+            } elseif (is_array($value) && isset($value['not_in'])) {
+                // 处理 NOT IN 条件
+                $values = array_map('addslashes', $value['not_in']);
+                $valuesList = implode("', '", $values);
+                $subConditions[] = "$key NOT IN ('$valuesList')";
+            } else {
+                // 处理简单条件
+                $subConditions[] = "$key = '" . addslashes($value) . "'";
+            }
+        }
+        return implode(' AND ', $subConditions);
+    }
+
+    private function handleObjectCondition($key, $value) {
+        // 假设对象的属性是条件
+        foreach ($value as $prop => $val) {
+            $this->conditions[] = "$key.$prop = '" . addslashes($val) . "'";
+        }
+    }
+
+    public function getWhereClause() {
+        return empty($this->conditions) ? '' : 'WHERE ' . implode(' AND ', $this->conditions);
+    }
+}
+
+class pagedate {
+    var $list;
+    var $count;
+}
+function getpage($table, $page, $size, $where, $dblj, $column = '*') {
+    $page = ($page -1) * $size;
+    $pagedate = new pagedate();
+    $SqlWhereBuilder = new SqlWhereBuilder($where);
+    $sql="select $column from `$table` {$SqlWhereBuilder->getWhereClause()} LIMIT $page, $size";
+    $ret = $dblj->query($sql);
+    $pagedate->list = $ret->fetchAll(\PDO::FETCH_ASSOC);
+
+    $sql = "select count(*) from `$table` {$SqlWhereBuilder->getWhereClause()}";
+    $cxjg = $dblj->query($sql);
+    $pagedate->count = $cxjg->fetchColumn();
+
+    return $pagedate;
 }
