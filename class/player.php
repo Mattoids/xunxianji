@@ -447,6 +447,7 @@ function addzb($sid,$zbid,$dblj){
 
 
 class daoju{
+    var $djnowid;
     var $djname;
     var $djzl;
     var $djinfo;
@@ -496,6 +497,7 @@ function getplayerdaoju($sid,$djid,$dblj){
     $cxjg->bindColumn('djinfo',$daoju->djinfo);
     $cxjg->bindColumn('djid',$daoju->djid);
     $cxjg->bindColumn('djsum',$daoju->djsum);
+    $cxjg->bindColumn('djnowid',$daoju->djnowid);
     $ret = $cxjg->fetch(\PDO::FETCH_ASSOC);
     
     if ($ret){
@@ -747,14 +749,16 @@ function changeyxb($lx,$gaibian,$sid,$dblj){//改变货币
         return true;
     }elseif($lx==2){
         if ($player->uyxb - $gaibian >= 0){
-            $sql = "update game1 set uyxb = uyxb - $gaibian WHERE sid='$sid'";
-            $dblj->exec($sql);
-            return true;
-        }else{
+            $sql = "update game1 set uyxb = uyxb - $gaibian WHERE sid='$sid' AND uyxb >= $gaibian";
+            $affected_rows = $dblj->exec($sql);
+            if ($affected_rows) {
+                return true;
+            }
             return false;
         }
-
+        return false;
     }
+    return false;
 }
 function changeczb($lx,$gaibian,$sid,$dblj){//改变货币
     $player = getplayer($sid,$dblj);
@@ -764,14 +768,16 @@ function changeczb($lx,$gaibian,$sid,$dblj){//改变货币
         return true;
     }elseif($lx==2){
         if ($player->uczb - $gaibian >= 0){
-            $sql = "update game1 set uczb = uczb - $gaibian WHERE sid='$sid'";
-            $dblj->exec($sql);
-            return true;
-        }else{
+            $sql = "update game1 set uczb = uczb - $gaibian WHERE sid='$sid' AND uczb >= $gaibian";
+            $affected_rows = $dblj->exec($sql);
+            if ($affected_rows) {
+                return true;
+            }
             return false;
         }
-
+        return false;
     }
+    return false;
 }
 
 function changclubexp($lx, $gaibian, $sid, $dblj) {
@@ -782,14 +788,16 @@ function changclubexp($lx, $gaibian, $sid, $dblj) {
         return true;
     }elseif($lx==2){
         if ($clubplayer->clubexp - $gaibian >= 0){
-            $sql = "update clubplayer set clubexp = clubexp - $gaibian WHERE sid='$sid'";
-            $dblj->exec($sql);
-            return true;
-        }else{
+            $sql = "update clubplayer set clubexp = clubexp - $gaibian WHERE sid='$sid' AND clubexp >= $gaibian";
+            $affected_rows = $dblj->exec($sql);
+            if ($affected_rows) {
+                return true;
+            }
             return false;
         }
-
+        return false;
     }
+    return false;
 }
 
 class task{

@@ -1,5 +1,7 @@
 ALTER TABLE `clubplayer` ADD COLUMN `gongxian` date NULL COMMENT '贡献时间' AFTER `clubexp`, ADD COLUMN `xujing` date NULL COMMENT '攻打虚境时间' AFTER `gongxian`;
 
+ALTER TABLE `playerdaoju` ADD COLUMN `djnowid` int(11) NOT NULL AUTO_INCREMENT AFTER `djid`, ADD PRIMARY KEY (`djnowid`);
+
 CREATE TABLE `clubstore` (
  `csid` int(11) NOT NULL AUTO_INCREMENT,
  `wpid` int(11) NOT NULL COMMENT '物品ID',

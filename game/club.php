@@ -402,6 +402,69 @@ if (isset($canshu)){
         case "cangku":
             $gongneng = "=========门派仓库=========<br/>";
 
+            if (isset($cwid) && isset($ispay)) {
+                try{
+                    $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+                    $dblj->setAttribute(PDO::ATTR_ERRMODE,  PDO::ERRMODE_EXCEPTION);
+                    $dblj->beginTransaction();
+
+                    $clubwarehouse = \player\getclubwarehouse($cwid, $dblj);
+                    if (!$clubwarehouse) {
+                        throw new PDOException("商品已经库存不足！<br/>");
+                    }
+
+                    $attribute = json_decode($clubwarehouse->attribute, true);
+                    if (!\player\changclubexp(2, $clubwarehouse->price, $sid, $dblj)) {
+                        throw new PDOException("贡献点不足，兑换失败！<br/>");
+                    }
+
+                    $sql = "delete from `clubwarehouse` WHERE cwid=$cwid";
+                    $affected_rows=$dblj->exec($sql);
+                    if (!$affected_rows) {
+                        throw new PDOException("出货失败！<br/>");
+                    }
+
+                    switch ($clubwarehouse->type) {
+                        case "zb":
+                            $sql = "UPDATE `playerzhuangbei` SET sid='$sid', uid=$player->uid WHERE zbnowid={$attribute['zbnowid']}";
+                            $affected_rows=$dblj->exec($sql);
+                            if (!$affected_rows) {
+                                throw new PDOException("出货失败！<br/>");
+                            }
+                            break;
+                        case "dj":
+                            $getdjsql="select * from playerdaoju where djid='{$attribute['djid']}' and sid='$sid'";
+                            $getdjob = $dblj->query($getdjsql);
+                            $cxRet = $getdjob->fetch(\PDO::FETCH_ASSOC);
+                            if(!$cxRet){
+                                $sql = "replace into `playerdaoju`(djname,djsum,uid,sid,djid,djinfo) VALUES('{$attribute['djname']},{$attribute->num} ,'$player->uid','$sid',{$attribute['djid']},'{$attribute['djinfo']}')";
+                            }else{
+                                $sql = "update `playerdaoju` set djsum = djsum + {$clubwarehouse->num} WHERE djid='{$attribute['djid']}' and sid='$sid'";
+                            }
+                            $affected_rows=$dblj->exec($sql);
+                            if (!$affected_rows) {
+                                throw new PDOException("出货失败！<br/>");
+                            }
+                            break;
+                        case "cw":
+                            $sql = "UPDATE `playerchongwu` SET sid='$sid' WHERE cwid={$attribute['cwid']}";
+                            $affected_rows=$dblj->exec($sql);
+                            if (!$affected_rows) {
+                                throw new PDOException("出货失败！<br/>");
+                            }
+                            break;
+                    }
+
+                    echo "兑换成功！<br/>";
+                    $dblj->commit();//交易成功就提交
+                } catch (PDOException $e) {
+                    echo $e->getMessage();
+                    $dblj->rollBack();
+                }
+                $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);//关闭
+                $clubplayer = \player\getclubplayer_once($sid, $dblj);
+            }
+
             if ($clubplayer->uclv <= 3) {
                 $addcangku = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&type=zb&page=1");
                 $gongneng .= "<a href='?cmd=$addcangku'>添加物品</a><br/>";
@@ -409,12 +472,27 @@ if (isset($canshu)){
 
             $gongneng .= "我的贡献点：$clubplayer->clubexp<br/><br/>";
             $gxyxb1 = $encode->encode("cmd=club&canshu=gongxian&sid=$sid&gongxian=80");
-            $sql="select * from clubwarehouse WHERE clubid = $clubplayer->clubid AND uclv <= $clubplayer->uclv";
+            $sql="select * from clubwarehouse WHERE clubid = $clubplayer->clubid AND uclv >= $clubplayer->uclv";
             $ret = $dblj->query($sql);
             $retuid = $ret->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($retuid as $item) {
-
+                $attribute = json_decode($item['attribute'], true);
+                $duihuan = $encode->encode("cmd=club&canshu=cangku&sid=$sid&cwid={$item['cwid']}&ispay=1");
+                switch ($item['type']) {
+                    case "zb":
+                        $zhuangbeicmd = $encode->encode("cmd=zbinfo&zbid={$attribute['zbid']}&sid=$sid&isstore=1");
+                        $gongneng .= "[装备]<a href='?cmd=$zhuangbeicmd'>{$attribute['zbname']}</a> 兑换价格：{$item['price']} | <a href='?cmd=$duihuan'>兑换</a><br/>";
+                        break;
+                    case "dj":
+                        $daojucmd = $encode->encode("cmd=djinfo&djid={$attribute['djid']}&sid=$sid&isstore=1");
+                        $gongneng .= "[道具]<a href='?cmd=$daojucmd'>{$attribute['djname']}*{$item['num']}</a> 兑换价格：{$item['price']} | <a href='?cmd=$duihuan'>兑换</a><br/>";
+                        break;
+                    case "cw":
+                        $chongwucmd = $encode->encode("cmd=chongwu&cwid=$attribute[cwid]&canshu=cwinfo&sid=$sid&isstore=1");
+                        $gongneng .= "[宠物]<a href='?cmd=$chongwucmd'>{$attribute['cwname']}</a> 兑换价格：{$item['price']} | <a href='?cmd=$duihuan'>兑换</a><br/>";
+                        break;
+                }
             }
 
             $gongneng .= "<br/>";
@@ -430,7 +508,7 @@ if (isset($canshu)){
                     switch ($type) {
                         case 'zb':
                             $gongneng = "【装备|<a href='?cmd=$daojucmd'>道具</a>|<a href='?cmd=$chongwucmd'>宠物</a>】<br/>";
-                            $where = ['sid' => $sid];
+                            $where = ['sid' => $sid, 'zbnowid' => ['not_in' => [$player->tool1, $player->tool2, $player->tool3, $player->tool4, $player->tool5, $player->tool6]]];
                             $result = \player\getpage('playerzhuangbei', $page, 10, $where, $dblj);
 
                             foreach ($result->list as $item) {
@@ -447,7 +525,7 @@ if (isset($canshu)){
                             foreach ($result->list as $item) {
                                 $addck = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&wpid=$item[djid]&type=$type");
                                 $shangpin = $encode->encode("cmd=djinfo&djid=$item[djid]&sid=$sid&isstore=1");
-                                $gongneng .= "<a href='?cmd=$shangpin'>$item[djname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
+                                $gongneng .= "<a href='?cmd=$shangpin'>{$item['djname']}*{$item['djsum']}</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
                             }
                             break;
                         case 'cw':
@@ -457,8 +535,8 @@ if (isset($canshu)){
 
                             foreach ($result->list as $item) {
                                 $addck = $encode->encode("cmd=club&canshu=addcangku&sid=$sid&wpid=$item[cwid]&type=$type");
-                                $shangpin = $encode->encode("cmd=chongwu&cwid=$item[cwid]&canshu=cwinfo&sid=$sid&isstore=1");
-                                $gongneng .= "<a href='?cmd=$shangpin'>$item[cwname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
+                                $chongwu = $encode->encode("cmd=chongwu&cwid=$item[cwid]&canshu=cwinfo&sid=$sid&isstore=1");
+                                $gongneng .= "<a href='?cmd=$chongwu'>$item[cwname]</a> | <a href='?cmd=$addck'>加入仓库</a><br/>";
                             }
                             break;
                     }
@@ -466,25 +544,88 @@ if (isset($canshu)){
             }
             if (isset($wpid) && isset($type)) {
                 $gongneng = "=========添加物品=========<br/><br/>";
+
                 switch ($type) {
                     case 'zb':
                         $shangpin = $encode->encode("cmd=zbinfo&zbid=$wpid&sid=$sid&isstore=1");
                         $wupin = \player\getzb($wpid, $dblj);
                         $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->zbname}</a><br/><br/>";
+                        $gongnenghtml = "<input type='hidden' name='num' value='1'/>";
+                        $wpid = $wupin->zbnowid;
                         break;
                     case 'dj':
                         $shangpin = $encode->encode("cmd=djinfo&djid=$wpid&sid=$sid&isstore=1");
                         $wupin = \player\getplayerdaoju($sid, $wpid, $dblj);
-                        $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->djname}</a><br/><br/>";
+                        $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->djname}*{$wupin->djsum}</a><br/><br/>";
                         $gongnenghtml = "添加数量: <input type='text' name='num'/><br/>";
+                        $wpid = $wupin->djnowid;
                         break;
                     case 'cw':
                         $shangpin = $encode->encode("cmd=chongwu&cwid=$wpid&canshu=cwinfo&sid=$sid&isstore=1");
                         $wupin = \player\getchongwu($wpid, $dblj);
                         $gongneng .= "正在添加：<a href='?cmd=$shangpin'>{$wupin->cwname}</a><br/><br/>";
+                        $gongnenghtml = "<input type='hidden' name='num' value='1'/>";
+                        $wpid = $wupin->cwid;
                         break;
                 }
-                $gongneng .= "<form><input type='hidden' name='cmd' value='club'/><input type='hidden' name='canshu' value='addcangku'/><input type='hidden' name='sid' value='$sid'/><input type='hidden' name='type' value='$type'/><input type='hidden' name='wpid' value='$type'/>{$gongnenghtml}兑换价格: <input type='text' name='price'/><br/><br/><input type='submit' value='加入仓库'></form>";
+
+                if (isset($price) && isset($num)) {
+                    try {
+                        $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+                        $dblj->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                        $dblj->beginTransaction();
+
+                        $attribute = str_replace('\\', '\\\\', json_encode($wupin, true));
+                        $sql = "insert into `clubwarehouse` (`clubid`, `type`, `num`, `price`, `uclv`, `attribute`) VALUES ($clubplayer->clubid, '{$type}', $num, $price, 6, '{$attribute}')";
+                        $affected_rows = $dblj->exec($sql);
+                        if (!$affected_rows){
+                            throw new PDOException("添加进仓库失败！<br/>");//那个错误抛出异常
+                        }
+
+                        switch ($type) {
+                            case 'zb':
+                                $sql="UPDATE `playerzhuangbei` SET sid='', uid=0 WHERE zbnowid = $wpid";
+                                $affected_rows=$dblj->exec($sql);
+                                if (!$affected_rows){
+                                    throw new PDOException("装备传送失败<br/>");//那个错误抛出异常
+                                }
+                                break;
+                            case 'dj':
+                                $sql = "update `playerdaoju` set djsum= djsum - $num WHERE djnowid = $wpid AND djsum >= $num AND uid = $player->uid AND sid='$sid'";
+                                $affected_rows=$dblj->exec($sql);
+                                if (!$affected_rows){
+                                    throw new PDOException("<div class='warn'>你身上的道具不足</div><br/>");//那个错误抛出异常
+                                }
+                                break;
+                            case 'cw':
+                                $sql="UPDATE `playerchongwu` SET sid='' WHERE cwid = $wpid";
+                                $affected_rows=$dblj->exec($sql);
+                                if (!$affected_rows){
+                                    throw new PDOException("宠物传送失败<br/>");//那个错误抛出异常
+                                }
+                                break;
+                        }
+
+                        echo "添加成功<br/>";
+                        $dblj->commit();
+                    } catch (PDOException $e) {
+                        echo $e->getMessage();
+                        $dblj->rollBack();
+                    }
+                    $dblj->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);//关闭
+                }
+
+                $gongneng .= "<form>";
+                $gongneng .= "<input type='hidden' name='cmd' value='club'/>";
+                $gongneng .= "<input type='hidden' name='canshu' value='addcangku'/>";
+                $gongneng .= "<input type='hidden' name='sid' value='$sid'/>";
+                $gongneng .= "<input type='hidden' name='type' value='$type'/>";
+                $gongneng .= "<input type='hidden' name='wpid' value='$wpid'/>";
+                $gongneng .= $gongnenghtml;
+                $gongneng .= "兑换价格: <input type='text' name='price'/>";
+                $gongneng .= "<br/><br/>";
+                $gongneng .= "<input type='submit' value='加入仓库'>";
+                $gongneng .= "</form>";
 
                 $gongneng .= "<br/>";
             }
