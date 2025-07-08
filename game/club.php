@@ -224,20 +224,23 @@ if (isset($canshu)){
             $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
             exit($gongneng);
         case "qiandaorun":
-            $clubplayer = \player\getclubplayer_once($sid,$dblj);
+            $gongneng = "=========签到=========<br/>";
+            $club = \player\getclub($clubplayer->clubid,$dblj);
             $date = date('Y-m-d');
             if (!isset($clubplayer->qiandao) || $clubplayer->qiandao != $date) {
                 $sql="update clubplayer set qiandao='$date' WHERE sid='$sid'";
                 $dblj->exec($sql);
 
-                // TODO::奖励
-                $config = \player\getconfig("clubqiandao", $dblj);
+                $gongneng .= "签到成功<br/><br/>";
 
-                echo "签到成功<br/>";
+                // 奖励
+                $gongneng .= \player\getconfigdata("clubqiandao", $sid, $dblj, $club->clublv * 10, 1);
+
             } else {
-                echo "你今天已签到，请不要重复签到！<br/>";
+                $gongneng .= "你今天已签到，请不要重复签到！<br/>";
             }
-            break;
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
         case "upgrade":
             $club = \player\getclub($clubplayer->clubid,$dblj);
             $playercount = \player\getclubplayer_count($club->clubid, $dblj);
@@ -631,6 +634,97 @@ if (isset($canshu)){
             }
             $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
             exit($gongneng);
+        case "xujing":
+            $gongneng = "=========虚境=========<br/><br/>";
+
+            $club = \player\getclub($clubplayer->clubid,$dblj);
+            $clubxujing = \player\getclubxujing_all($club->clublv, $dblj);
+
+            foreach ($clubxujing as $item) {
+                $goxujing = $encode->encode("cmd=club&canshu=goxujing&sid=$sid&xjid={$item['xjid']}");
+                $gongneng .= "<a href='?cmd=$goxujing'>{$item['xjname']}</a><br/>";
+            }
+
+            $gongneng .= "<br/>";
+
+            $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+            exit($gongneng);
+        case "goxujing":
+            if (isset($xjid)) {
+                $clubxujing = \player\getclubxujing($xjid, $dblj);
+                $gongneng = "========={$clubxujing->xjname}=========<br/><br/>";
+
+                $date = date("Y-m-d");
+                $clubxujingplayer = \player\getclubxujingplayer($sid, $xjid, $dblj);
+                if ((($clubxujingplayer->date != $date || ($clubxujingplayer->num < $clubxujing->challenge && $clubxujing->challenge > 0)) && $clubxujing->duplicates == 0) ||
+                    ($clubxujing->duplicates == 1 && !$clubxujingplayer)) {
+                    if (!$clubxujingplayer) {
+                        $clubxujingplayer->num = 0;
+                    }
+                    if($clubxujing->challenge > 1) {
+                        $gongneng .= "({$clubxujingplayer->num}/{$clubxujing->challenge})</br>";
+                    }
+                    $goxujing = $encode->encode("cmd=club&canshu=xujingplayer&sid=$sid&xjid={$xjid}&xujing=1");
+                    $gongneng .= "<a href='?cmd=$goxujing'>进入虚境</a>";
+                } else {
+                    if ($clubxujing->duplicates == 0) {
+                        $gongneng .= "今天";
+                    }
+                    $gongneng .= "已经挑战过秘境!<br/><br/>";
+                }
+
+                $gongneng .= "<div style='width: 180px;margin:auto;'>{$clubxujing->xjinfo}</div><br/>";
+
+                $gongneng .= "<button onClick='javascript :history.back(-1);'>返回上一页</button><br/><a href='?cmd=$gonowmid'>返回游戏</a>";
+                exit($gongneng);
+            }
+            break;
+        case "xujingplayer":
+            if (isset($xjid)) {
+                $clubxujingplayer = \player\getclubxujingplayer($sid, $xjid, $dblj);
+                if (isset($xujing) && $xujing == 1) {
+                    $date = date('Y-m-d');
+                    if (!$clubxujingplayer) {
+                        $sql = "insert into `clubxujingplayer` (`sid`, `xjid`, `step`, `date`, `num`) VALUES  ('$sid', $xjid, 1, '{$date}', 1)";
+                        $dblj->exec($sql);
+                    } else {
+                        if ($clubxujingplayer->date == $date) {
+                            $num = $clubxujingplayer->num + 1;
+                            $step = $clubxujingplayer->step;
+                        } else {
+                            $num = 1;
+                            $step = 1;
+                        }
+                        $sql = "update `clubxujingplayer` set date='{$date}', num = {$num}, step = {$step} where sid = '{$sid}' AND xjid = $xjid";
+                        $dblj->exec($sql);
+                    }
+                    $clubxujingplayer = \player\getclubxujingplayer($sid, $xjid, $dblj);
+                }
+
+                $clubxujinginfo = \player\getclubxujinginfo($xjid, $dblj, $clubxujingplayer->step);
+                if ($clubxujinginfo->menu) {
+                    $muban = iconv('UTF-8','UTF-8',$clubxujinginfo->menu);
+                    if (file_exists("./game/menu/{$clubxujinginfo->menu}")){
+                        include "./game/menu/{$clubxujinginfo->menu}";
+                    }
+                }
+
+                switch ($clubxujinginfo->type) {
+                    case "boss":
+                        break;
+                    case "renwu":
+                        $tasklist = explode(',', $clubxujinginfo->xjsj);
+                        $tasknum = mt_rand(0 ,count($tasklist) - 1);
+                        $rwcmd = $encode->encode("cmd=task&canshu=jieshou&rwid={$tasklist[$tasknum]}&sid=$sid&nid=0");
+                        header("Location: ?cmd=$rwcmd");
+                        break;
+                    case "mid":
+                        $gomid = $encode->encode("cmd=gomid&newmid={$clubxujinginfo->xjsj}&sid=$sid");;
+                        header("Location: ?cmd=$gomid");
+                        break;
+                }
+            }
+            break;
     }
 }
 if (isset($clubid) || $clubplayer){

@@ -335,6 +335,30 @@ function changeexp($sid,$dblj,$exp){
     }
 }
 
+function clubchangeexp($sid,$dblj,$exp) {
+    $clubplayer = getclubplayer_once($sid, $dblj);
+    if (!$clubplayer) {
+        return false;
+    }
+    $sql = "update `clubplayer` set clubexp = clubexp + $exp where sid='$sid'";
+    $ret = $dblj->exec($sql);
+    if (!$ret) {
+        return false;
+    }
+
+    $club = getclub($clubplayer->clubid,$dblj);
+    if (!$club) {
+        return false;
+    }
+    $sql = "update `club` set clubexp = clubexp + $exp where clubid={$clubplayer->clubid}";
+    $ret = $dblj->exec($sql);
+    if (!$ret) {
+        return false;
+    }
+
+    return true;
+}
+
 function upplayerlv($sid,$dblj){
     $player = getplayer($sid,$dblj);
     if ($player->uexp >= $player->umaxexp){
@@ -760,6 +784,32 @@ function changeyxb($lx,$gaibian,$sid,$dblj){//改变货币
     }
     return false;
 }
+
+function clubchangeyxb($gaibian,$sid,$dblj, $lx = '+') {
+    $clubplayer = getclubplayer_once($sid, $dblj);
+    if (!$clubplayer) {
+        return false;
+    }
+
+    $club = getclub($clubplayer->clubid,$dblj);
+    if (!$club) {
+        return false;
+    }
+
+    $where = '';
+    if ($lx == '-') {
+        $where = 'AND clubyxb >= $gaibian';
+    }
+
+    $sql = "update `club` set clubyxb = clubyxb {$lx} {$gaibian} WHERE clubid={$clubplayer->clubid} {$where}";
+    $affected_rows = $dblj->exec($sql);
+    if (!$affected_rows) {
+        return false;
+    }
+
+    return true;
+}
+
 function changeczb($lx,$gaibian,$sid,$dblj){//改变货币
     $player = getplayer($sid,$dblj);
     if ($lx==1){
@@ -778,6 +828,25 @@ function changeczb($lx,$gaibian,$sid,$dblj){//改变货币
         return false;
     }
     return false;
+}
+
+function clubchangeczb($gaibian,$clubid,$dblj, $lx = '+') {
+    $club = getclub($clubid, $dblj);
+    if (!$club) {
+        return false;
+    }
+
+    $where = '';
+    if ($lx == '-') {
+        $where = "AND clubczb >= {$gaibian}";
+    }
+
+    $sql = "update `club` set clubczb = clubczb {$lx} {$gaibian} WHERE clubid={$clubid} {$where}";
+    if (!$dblj->exec($sql)) {
+        return false;
+    }
+
+    return true;
 }
 
 function changclubexp($lx, $gaibian, $sid, $dblj) {
@@ -1573,7 +1642,7 @@ class config{
 
 function getconfig($code, $dblj) {
     $config = new config();
-    $sql = "select * from config WHERE code = $code";
+    $sql = "select * from config WHERE code = '{$code}'";
     $retc = $dblj->query($sql);
     $retc->bindColumn('code',$config->code);
     $retc->bindColumn('cdj',$config->cdj);
@@ -1591,48 +1660,96 @@ function getconfig($code, $dblj) {
     return $config;
 }
 
-function getconfigjson($data, $column, $sid, $dblj, $ratio = 0, $isclub=0) {
-    foreach (explode(",", $data) as $item) {
-        $value = explode("|", $item);
+function getconfigdata($code, $sid, $dblj, $ratio = 0, $isclub=0) {
+    $encode = new \encode\encode();
+    $config = getconfig($code, $dblj);
+    if (!$config) {
+        return '';
+    }
+    $html = '';
+    $keylist = ['cexp', 'cxb', 'cczb', 'ccw', 'cyp', 'cdj', 'czb'];
+    foreach ($keylist as $key) {
+        if (isset($config->$key)) {
+            foreach (explode(",", $config->$key) as $item) {
+                $data = explode("|", $item);
+                $wpid = $data[0];
+                $wpnum = 0;
+                if (isset($data[1])) {
+                    $wpnum = $data[1];
+                    $datanum = explode('-', $data[1]);
+                    if (count($datanum) > 1) {
+                        $wpnum =  mt_rand($datanum[0], $datanum[1]);
+                    }
 
-        $id = 0;
-        $sum = 0;
-
-        switch ($column) {
-            case 'cdj':
-                adddj($sid, $id, $sum, $dblj);
-                break;
-            case 'cyp':
-                addyaopin($sid, $id, $sum, $dblj);
-                break;
-            case 'ccw':
-                break;
-            case 'cexp':
-                if ($isclub == 1) {
-
-                } else {
-                    changeexp($sid, $dblj, $sum);
+                    $probability = mt_rand(0, 9999);
+                    if ($probability >= ($data[2] + $ratio)) {
+                        $wpnum = 0;
+                    }
                 }
-                break;
-            case 'cxb':
-                if ($isclub == 1) {
 
-                } else {
-
+                if ($wpnum > 0) {
+                    $html .= "获得：";
+                    switch ($key) {
+                        case 'cdj':
+                            $daoju = getdaoju($wpid, $dblj);
+                            adddj($sid, $wpid, $wpnum, $dblj);
+                            $daojucmd = $encode->encode("cmd=djinfo&djid=$wpid&sid=$sid&isstore=1");
+                            $html .= "[道具]<a href='$daojucmd'>{$daoju->djname}*{$wpnum}</a>";
+                            break;
+                        case 'cyp':
+                            $yaopin = getyaopinonce($wpid, $dblj);
+                            addyaopin($sid, $wpid, $wpnum, $dblj);
+                            $shangpincmd = $encode->encode("cmd=ypinfo&ypid={$wpid}&sid=$sid&isstore=1");
+                            $html .= "[药品]<a href='$shangpincmd'>{$yaopin->ypname}*{$wpnum}</a>";
+                            break;
+                        case 'ccw':
+                            $chongwucmd = $encode->encode("cmd=chongwu&cwid=$wpid&canshu=cwinfo&sid=$sid&isstore=1");
+                            $html .= "[宠物]<a href='$chongwucmd'>{宠物}</a>";
+                            break;
+                        case 'cexp':
+                            if ($isclub == 1) {
+                                clubchangeexp($sid, $dblj, $wpnum);
+                                $html .= "贡献值*{$wpnum}";
+                            } else {
+                                changeexp($sid, $dblj, $wpnum);
+                                $html .= "修为*{$wpnum}";
+                            }
+                            break;
+                        case 'cxb':
+                            if ($isclub == 1) {
+                                clubchangeyxb($wpnum, $sid, $dblj);
+                                $html .= "灵石*{$wpnum}";
+                            } else {
+                                changeyxb(1, $wpnum, $sid, $dblj);
+                                $html .= "灵石*{$wpnum}";
+                            }
+                            break;
+                        case 'czb':
+                            $zhuangbei = getzbkzb($wpid, $dblj);
+                            addzb($sid, $wpid, $dblj);
+                            $zhuangbeicmd = $encode->encode("cmd=zbinfo&zbid={$wpid}&sid=$sid&isstore=1");
+                            $html .= "[装备]<a href='$zhuangbeicmd'>{$zhuangbei->zbname}</a>";
+                            break;
+                        case 'cczb':
+                            if ($isclub == 1) {
+                                $clubplayer = getclubplayer_once($sid, $dblj);
+                                clubchangeczb($wpnum, $clubplayer->clubid, $dblj);
+                                $html .= "极品灵石*{$wpnum}";
+                            } else {
+                                changeczb(1, $wpnum, $sid, $dblj);
+                                $html .= "极品灵石*{$wpnum}";
+                            }
+                            break;
+                    }
+                    $html .= "<br/>";
                 }
-                break;
-            case 'czb':
-                addzb($sid, $id, $dblj);
-                break;
-            case 'cczb':
-                if ($isclub == 1) {
-
-                } else {
-
-                }
-                break;
+            }
         }
     }
+
+    $html .= "<br/>";
+
+    return $html;
 }
 
 class clubstore {
@@ -1796,4 +1913,87 @@ function getpage($table, $page, $size, $where, $dblj, $column = '*') {
     $pagedate->count = $cxjg->fetchColumn();
 
     return $pagedate;
+}
+
+class clubxujing{
+    var $xjid;
+    var $xjname;
+    var $xjinfo;
+    var $clublv;
+    var $duplicates;
+    var $challenge;
+}
+
+function getclubxujing_all($clublv, $dblj) {
+    $sql="select * from `clubxujing` where clublv < $clublv";
+    $ret = $dblj->query($sql);
+    $list = $ret->fetchAll(\PDO::FETCH_ASSOC);
+    return $list;
+}
+
+function getclubxujing($xjid, $dblj) {
+    $clubxujing = new clubxujing();
+    $sql = "select * from `clubxujing` WHERE xjid = $xjid";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('xjid',$clubxujing->xjid);
+    $retc->bindColumn('xjname',$clubxujing->xjname);
+    $retc->bindColumn('xjinfo',$clubxujing->xjinfo);
+    $retc->bindColumn('clublv',$clubxujing->clublv);
+    $retc->bindColumn('duplicates',$clubxujing->duplicates);
+    $retc->bindColumn('challenge',$clubxujing->challenge);
+    $ret = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$ret){
+        return $ret;
+    }
+    return $clubxujing;
+}
+
+class clubxujinginfo {
+    var $xjdid;
+    var $xjid;
+    var $type;
+    var $xjsj;
+    var $step;
+    var $menu;
+}
+
+function getclubxujinginfo($xjid,$dblj,$step=1) {
+    $clubxujinginfo = new clubxujinginfo();
+    $sql = "select * from `clubxujinginfo` WHERE xjid = $xjid AND step = $step";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('xjdid',$clubxujinginfo->xjdid);
+    $retc->bindColumn('xjid',$clubxujinginfo->xjid);
+    $retc->bindColumn('type',$clubxujinginfo->type);
+    $retc->bindColumn('xjsj',$clubxujinginfo->xjsj);
+    $retc->bindColumn('step',$clubxujinginfo->step);
+    $retc->bindColumn('menu',$clubxujinginfo->menu);
+    $ret = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$ret){
+        return $ret;
+    }
+    return $clubxujinginfo;
+}
+
+class clubxujingplayer {
+    var $sid;
+    var $xjid;
+    var $date;
+    var $step;
+    var $num;
+}
+
+function getclubxujingplayer($sid, $xjid, $dblj) {
+    $clubxujingplayer = new clubxujingplayer();
+    $sql = "select * from `clubxujingplayer` WHERE sid = '$sid' AND xjid = $xjid";
+    $retc = $dblj->query($sql);
+    $retc->bindColumn('sid',$clubxujingplayer->sid);
+    $retc->bindColumn('xjid',$clubxujingplayer->xjid);
+    $retc->bindColumn('date',$clubxujingplayer->date);
+    $retc->bindColumn('step',$clubxujingplayer->step);
+    $retc->bindColumn('num',$clubxujingplayer->num);
+    $ret = $retc->fetch(\PDO::FETCH_ASSOC);
+    if (!$ret){
+        return $ret;
+    }
+    return $clubxujingplayer;
 }
